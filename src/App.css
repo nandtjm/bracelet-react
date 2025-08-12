@@ -38,6 +38,57 @@ select {
   -ms-overflow-style: none;
 }
 
+/* Bracelet positioning styles */
+.bracelet-container {
+  position: relative;
+}
+
+.stone {
+  position: absolute;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.stone.has-letter {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.stone.has-charm {
+  box-shadow: 0 2px 8px rgba(255,215,0,0.3);
+  animation: charmGlow 2s ease-in-out infinite alternate;
+}
+
+.stone:not(.has-letter):not(.has-charm) {
+  opacity: 0.7;
+}
+
+.stone:not(.has-letter):not(.has-charm):hover {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+/* Charm glow animation */
+@keyframes charmGlow {
+  from {
+    box-shadow: 0 2px 8px rgba(255,215,0,0.3);
+  }
+  to {
+    box-shadow: 0 4px 12px rgba(255,215,0,0.5);
+  }
+}
+
+/* Dropzone highlighting */
+.stone.dropzone-active {
+  border: 2px solid #4F46E5 !important;
+  background: rgba(79, 70, 229, 0.1) !important;
+}
+
+.stone.dropzone-hover {
+  border: 2px solid #10B981 !important;
+  background: rgba(16, 185, 129, 0.1) !important;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .App > div {

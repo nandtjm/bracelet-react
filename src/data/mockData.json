@@ -6,109 +6,24 @@
       "description": "Classic bluestone bracelet with white letter blocks",
       "basePrice": 49,
       "image": "/images/bracelets/bluestone.webp",
+      "gapImages": {
+        "2": "/images/bracelets/bluestone-2char.webp",
+        "3": "/images/bracelets/bluestone-3char.webp",
+        "4": "/images/bracelets/bluestone-4char.webp",
+        "5": "/images/bracelets/bluestone-5char.webp",
+        "6": "/images/bracelets/bluestone-6char.webp",
+        "7": "/images/bracelets/bluestone-7char.webp",
+        "8": "/images/bracelets/bluestone-8char.webp",
+        "9": "/images/bracelets/bluestone-9char.webp",
+        "10": "/images/bracelets/bluestone-10char.webp",
+        "11": "/images/bracelets/bluestone-11char.webp",
+        "12": "/images/bracelets/bluestone-12char.webp",
+        "13": "/images/bracelets/bluestone-13char.webp"
+      },
       "isBestSeller": true,
       "category": "standard",
       "colors": ["blue", "white", "gold"],
       "sizes": ["XS", "S/M", "M/L", "L/XL"]
-    },
-    {
-      "id": "chambray-white",
-      "name": "Chambray - White Letter",
-      "description": "Elegant chambray bracelet with white letter accents",
-      "basePrice": 49,
-      "image": "/images/bracelets/chambray-white.webp",
-      "isBestSeller": true,
-      "category": "standard",
-      "colors": ["chambray", "white", "gold"],
-      "sizes": ["XS", "S/M", "M/L", "L/XL"]
-    },
-    {
-      "id": "joyful",
-      "name": "Joyful",
-      "description": "Vibrant multicolor bracelet with crystal accents",
-      "basePrice": 49,
-      "image": "/images/bracelets/joyful.webp",
-      "isBestSeller": false,
-      "category": "standard",
-      "colors": ["multicolor", "crystal", "gold"],
-      "sizes": ["XS", "S/M", "M/L", "L/XL"]
-    },
-    {
-      "id": "gold-plated",
-      "name": "Gold Plated",
-      "description": "Classic gold plated bracelet",
-      "basePrice": 59,
-      "image": "/images/bracelets/gold-plated.webp",
-      "isBestSeller": true,
-      "category": "standard",
-      "colors": ["gold"],
-      "sizes": ["XS", "S/M", "M/L", "L/XL"]
-    },
-    {
-      "id": "amethyst-dreams",
-      "name": "Amethyst Dreams",
-      "description": "Purple amethyst stone bracelet",
-      "basePrice": 54,
-      "image": "/images/bracelets/amethyst-dreams.webp",
-      "isBestSeller": true,
-      "category": "limited-edition",
-      "colors": ["purple", "white", "gold"],
-      "sizes": ["XS", "S/M", "M/L", "L/XL"]
-    },
-    {
-      "id": "pink-chalk",
-      "name": "Pink Chalk",
-      "description": "Soft pink chalk colored bracelet",
-      "basePrice": 49,
-      "image": "/images/bracelets/pink-chalk.webp",
-      "isBestSeller": true,
-      "category": "standard",
-      "colors": ["pink", "white", "gold"],
-      "sizes": ["XS", "S/M", "M/L", "L/XL"]
-    },
-    {
-      "id": "rainbow",
-      "name": "Rainbow",
-      "description": "Colorful rainbow themed bracelet",
-      "basePrice": 52,
-      "image": "/images/bracelets/rainbow.webp",
-      "isBestSeller": false,
-      "category": "standard",
-      "colors": ["multicolor", "rainbow", "gold"],
-      "sizes": ["XS", "S/M", "M/L", "L/XL"]
-    },
-    {
-      "id": "evil-eye",
-      "name": "Evil Eye",
-      "description": "Protective evil eye design bracelet",
-      "basePrice": 49,
-      "image": "/images/bracelets/evil-eye.webp",
-      "isBestSeller": false,
-      "category": "personalize-it",
-      "colors": ["blue", "white", "gold"],
-      "sizes": ["XS", "S/M", "M/L", "L/XL"]
-    },
-    {
-      "id": "funfetti",
-      "name": "Funfetti",
-      "description": "Fun multicolor speckled design",
-      "basePrice": 49,
-      "image": "/images/bracelets/funfetti.webp",
-      "isBestSeller": false,
-      "category": "standard",
-      "colors": ["multicolor", "white", "gold"],
-      "sizes": ["XS", "S/M", "M/L", "L/XL"]
-    },
-    {
-      "id": "lava-stone-mens",
-      "name": "Lava Stone Men's",
-      "description": "Masculine lava stone bracelet",
-      "basePrice": 54,
-      "image": "/images/bracelets/lava-stone-mens.webp",
-      "isBestSeller": false,
-      "category": "standard",
-      "colors": ["black", "white", "gold"],
-      "sizes": ["S/M", "M/L", "L/XL"]
     }
   ],
   "charms": [

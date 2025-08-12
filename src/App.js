@@ -6,7 +6,7 @@ function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [customization, setCustomization] = useState({
     braceletStyle: 'bluestone',
-    word: 'HELLO',
+    word: '',
     letterColor: 'white',
     selectedCharms: [],
     size: 'xs'
@@ -23,6 +23,7 @@ function App() {
   const [isCharmSummaryExpanded, setIsCharmSummaryExpanded] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isReviewMode, setIsReviewMode] = useState(false);
+  const [draggedItem, setDraggedItem] = useState(null);
   
   // Organize bracelets by category
   const braceletsByCategory = {
@@ -53,6 +54,37 @@ function App() {
     return mockData.bracelets.find(b => b.id === customization.braceletStyle) || mockData.bracelets[0];
   };
 
+  // Get the appropriate bracelet image based on word character count
+  const getBraceletImage = () => {
+    const selectedBracelet = getSelectedBracelet();
+    
+    if (!customization.word || customization.word.length === 0) {
+      return selectedBracelet.image; // No gaps image
+    }
+    
+    // Count only letters/numbers, excluding spaces
+    const charCount = customization.word.replace(/\s/g, '').length;
+    
+    // Use appropriate gap image based on character count (2-13)
+    if (charCount >= 2 && charCount <= 13 && selectedBracelet.gapImages) {
+      return selectedBracelet.gapImages[charCount.toString()] || selectedBracelet.image;
+    }
+    
+    return selectedBracelet.image;
+  };
+
+  // Process word for display (handle spaces as stone separators)
+  const processWordForDisplay = (word) => {
+    if (!word) return [];
+    
+    // Split word into characters, maintaining spaces as separators
+    return word.split('').map((char, index) => ({
+      char: char,
+      isSpace: char === ' ',
+      index: index
+    }));
+  };
+
   // Calculate total price
   const calculateTotal = () => {
     const selectedBracelet = getSelectedBracelet();
@@ -61,6 +93,12 @@ function App() {
     if (selectedLetterColor) total += selectedLetterColor.price;
     const charmsTotal = customization.selectedCharms.reduce((sum, charm) => sum + charm.price, 0);
     return (total + charmsTotal) * quantity;
+  };
+
+  // Handle drag and drop functionality
+  const handleDragStart = (e, item, itemType) => {
+    setDraggedItem({ item, itemType });
+    e.dataTransfer.effectAllowed = 'move';
   };
 
   return (
@@ -142,65 +180,167 @@ function App() {
           }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{
-                width: '300px',
-                height: '300px',
-                borderRadius: '50%',
+                width: '450px',
+                height: '450px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '24px',
                 fontWeight: 'bold',
-                backgroundColor: 'white',
                 margin: '0 auto 20px',
-                position: 'relative',
-                backgroundImage: `url(${getSelectedBracelet().image})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                border: '10px solid #f0f0f0'
+                position: 'relative'
               }}>
-                {/* Display letter blocks */}
-                <div style={{ 
-                  display: 'flex', 
-                  gap: '2px',
-                  flexWrap: 'wrap',
-                  justifyContent: 'center',
-                  alignItems: 'center'
+                {/* Base bracelet container */}
+                <div className="bracelet-container" style={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '100%',
+                  backgroundImage: `url(${getBraceletImage()})`,
+                  backgroundSize: 'contain',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'center'
                 }}>
-                  {customization.word.split('').map((letter, index) => (
-                    <div key={index} style={{
-                      background: mockData.letterColors.find(c => c.id === customization.letterColor)?.hexColor || '#FFFFFF',
-                      color: customization.letterColor === 'white' ? '#000' : '#FFF',
-                      padding: '4px 6px',
-                      borderRadius: '3px',
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      border: '1px solid #ddd',
-                      minWidth: '20px',
-                      textAlign: 'center'
-                    }}>
-                      {letter}
-                    </div>
-                  ))}
+                  {/* Letter blocks and stone spacers positioned in gaps when word is present */}
+                  {customization.word && processWordForDisplay(customization.word).map((item, itemIndex) => {
+                    const totalItems = processWordForDisplay(customization.word).length;
+                    // Position letters at bottom center of bracelet in the gaps
+                    const angleRange = 120; // 120 degrees range for letters at bottom
+                    const startAngle = 210 - (angleRange / 2); // Start angle to center the word
+                    const angleStep = angleRange / (totalItems + 1);
+                    const angle = startAngle + (angleStep * (itemIndex + 1));
+                    
+                    const radius = 165; // Position items inside the gaps
+                    const x = Math.cos(angle * Math.PI / 180) * radius;
+                    const y = Math.sin(angle * Math.PI / 180) * radius;
+                    
+                    if (item.isSpace) {
+                      // Render stone separator for spaces
+                      return (
+                        <div
+                          key={`space-${itemIndex}`}
+                          className="stone-separator"
+                          style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: '50%',
+                            transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                            width: '12px',
+                            height: '12px',
+                            borderRadius: '50%',
+                            background: '#8B9DC3', // Bluestone color for separator
+                            border: '1px solid #6B7FA3',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            zIndex: 10
+                          }}
+                        />
+                      );
+                    } else {
+                      // Render letter block
+                      return (
+                        <div
+                          key={`letter-${itemIndex}`}
+                          className="letter-block"
+                          style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: '50%',
+                            transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '4px',
+                            background: mockData.letterColors.find(c => c.id === customization.letterColor)?.hexColor || '#FFFFFF',
+                            color: customization.letterColor === 'white' ? '#000' : '#FFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            border: '1px solid #ddd',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            zIndex: 10
+                          }}
+                        >
+                          {item.char}
+                        </div>
+                      );
+                    }
+                  })}
+
+                  {/* Charm positions around the top of the bracelet */}
+                  {customization.selectedCharms.slice(0, 6).map((charm, charmIndex) => {
+                    const angle = -120 + (charmIndex * 48); // Spread charms across top
+                    const radius = 140;
+                    const x = Math.cos(angle * Math.PI / 180) * radius;
+                    const y = Math.sin(angle * Math.PI / 180) * radius;
+                    
+                    return (
+                      <div
+                        key={`charm-${charmIndex}`}
+                        className="charm-position"
+                        style={{
+                          position: 'absolute',
+                          left: '50%',
+                          top: '50%',
+                          transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: '#FFD700',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(255,215,0,0.3)',
+                          zIndex: 10
+                        }}
+                        onClick={() => {
+                          const newCharms = [...customization.selectedCharms];
+                          newCharms.splice(charmIndex, 1);
+                          setCustomization({...customization, selectedCharms: newCharms});
+                        }}
+                      >
+                        ✨
+                      </div>
+                    );
+                  })}
+
+                  {/* Empty dropzones for letter positioning when no word is entered */}
+                  {!customization.word && [...Array(13)].map((_, dropIndex) => {
+                    const angleRange = 120;
+                    const startAngle = 210 - (angleRange / 2);
+                    const angleStep = angleRange / 14;
+                    const angle = startAngle + (angleStep * (dropIndex + 1));
+                    
+                    const radius = 165;
+                    const x = Math.cos(angle * Math.PI / 180) * radius;
+                    const y = Math.sin(angle * Math.PI / 180) * radius;
+                    
+                    return (
+                      <div
+                        key={`dropzone-${dropIndex}`}
+                        className="letter-dropzone"
+                        style={{
+                          position: 'absolute',
+                          left: '50%',
+                          top: '50%',
+                          transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '4px',
+                          border: '1px dashed rgba(255,255,255,0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          color: 'rgba(255,255,255,0.5)',
+                          zIndex: 5
+                        }}
+                      >
+                      </div>
+                    );
+                  })}
                 </div>
-                
-                {/* Show selected charms around the bracelet */}
-                {customization.selectedCharms.slice(0, 6).map((charm, index) => (
-                  <div key={index} style={{
-                    position: 'absolute',
-                    width: '20px',
-                    height: '20px',
-                    background: '#FFD700',
-                    borderRadius: '50%',
-                    fontSize: '10px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transform: `rotate(${index * 60}deg) translateY(-140px)`,
-                    transformOrigin: 'center 140px'
-                  }}>
-                    ✨
-                  </div>
-                ))}
               </div>
             </div>
           </div>
@@ -736,16 +876,18 @@ function App() {
                       .map(charm => (
                       <div
                         key={charm.id}
+                        draggable={!charm.isSoldOut}
                         style={{
                           padding: '12px',
                           border: '1px solid #f3f4f6',
                           borderRadius: '8px',
                           background: 'white',
                           textAlign: 'center',
-                          cursor: charm.isSoldOut ? 'not-allowed' : 'pointer',
+                          cursor: charm.isSoldOut ? 'not-allowed' : 'grab',
                           opacity: charm.isSoldOut ? 0.5 : 1,
                           position: 'relative'
                         }}
+                        onDragStart={(e) => handleDragStart(e, charm, 'charm')}
                         onClick={() => {
                           if (!charm.isSoldOut) {
                             const currentCount = customization.selectedCharms.filter(c => c.id === charm.id).length;
