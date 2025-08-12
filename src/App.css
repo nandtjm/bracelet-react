@@ -28,6 +28,16 @@ select {
   font-family: inherit;
 }
 
+/* Hide scrollbars for category navigation */
+.category-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.category-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .App > div {

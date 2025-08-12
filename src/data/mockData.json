@@ -1,0 +1,371 @@
+{
+  "bracelets": [
+    {
+      "id": "bluestone",
+      "name": "Bluestone",
+      "description": "Classic bluestone bracelet with white letter blocks",
+      "basePrice": 49,
+      "image": "/images/bracelets/bluestone.webp",
+      "isBestSeller": true,
+      "category": "standard",
+      "colors": ["blue", "white", "gold"],
+      "sizes": ["XS", "S/M", "M/L", "L/XL"]
+    },
+    {
+      "id": "chambray-white",
+      "name": "Chambray - White Letter",
+      "description": "Elegant chambray bracelet with white letter accents",
+      "basePrice": 49,
+      "image": "/images/bracelets/chambray-white.webp",
+      "isBestSeller": true,
+      "category": "standard",
+      "colors": ["chambray", "white", "gold"],
+      "sizes": ["XS", "S/M", "M/L", "L/XL"]
+    },
+    {
+      "id": "joyful",
+      "name": "Joyful",
+      "description": "Vibrant multicolor bracelet with crystal accents",
+      "basePrice": 49,
+      "image": "/images/bracelets/joyful.webp",
+      "isBestSeller": false,
+      "category": "standard",
+      "colors": ["multicolor", "crystal", "gold"],
+      "sizes": ["XS", "S/M", "M/L", "L/XL"]
+    },
+    {
+      "id": "gold-plated",
+      "name": "Gold Plated",
+      "description": "Classic gold plated bracelet",
+      "basePrice": 59,
+      "image": "/images/bracelets/gold-plated.webp",
+      "isBestSeller": true,
+      "category": "standard",
+      "colors": ["gold"],
+      "sizes": ["XS", "S/M", "M/L", "L/XL"]
+    },
+    {
+      "id": "amethyst-dreams",
+      "name": "Amethyst Dreams",
+      "description": "Purple amethyst stone bracelet",
+      "basePrice": 54,
+      "image": "/images/bracelets/amethyst-dreams.webp",
+      "isBestSeller": true,
+      "category": "limited-edition",
+      "colors": ["purple", "white", "gold"],
+      "sizes": ["XS", "S/M", "M/L", "L/XL"]
+    },
+    {
+      "id": "pink-chalk",
+      "name": "Pink Chalk",
+      "description": "Soft pink chalk colored bracelet",
+      "basePrice": 49,
+      "image": "/images/bracelets/pink-chalk.webp",
+      "isBestSeller": true,
+      "category": "standard",
+      "colors": ["pink", "white", "gold"],
+      "sizes": ["XS", "S/M", "M/L", "L/XL"]
+    },
+    {
+      "id": "rainbow",
+      "name": "Rainbow",
+      "description": "Colorful rainbow themed bracelet",
+      "basePrice": 52,
+      "image": "/images/bracelets/rainbow.webp",
+      "isBestSeller": false,
+      "category": "standard",
+      "colors": ["multicolor", "rainbow", "gold"],
+      "sizes": ["XS", "S/M", "M/L", "L/XL"]
+    },
+    {
+      "id": "evil-eye",
+      "name": "Evil Eye",
+      "description": "Protective evil eye design bracelet",
+      "basePrice": 49,
+      "image": "/images/bracelets/evil-eye.webp",
+      "isBestSeller": false,
+      "category": "personalize-it",
+      "colors": ["blue", "white", "gold"],
+      "sizes": ["XS", "S/M", "M/L", "L/XL"]
+    },
+    {
+      "id": "funfetti",
+      "name": "Funfetti",
+      "description": "Fun multicolor speckled design",
+      "basePrice": 49,
+      "image": "/images/bracelets/funfetti.webp",
+      "isBestSeller": false,
+      "category": "standard",
+      "colors": ["multicolor", "white", "gold"],
+      "sizes": ["XS", "S/M", "M/L", "L/XL"]
+    },
+    {
+      "id": "lava-stone-mens",
+      "name": "Lava Stone Men's",
+      "description": "Masculine lava stone bracelet",
+      "basePrice": 54,
+      "image": "/images/bracelets/lava-stone-mens.webp",
+      "isBestSeller": false,
+      "category": "standard",
+      "colors": ["black", "white", "gold"],
+      "sizes": ["S/M", "M/L", "L/XL"]
+    }
+  ],
+  "charms": [
+    {
+      "id": "apple",
+      "name": "Apple",
+      "description": "Golden apple charm perfect for teachers",
+      "price": 14,
+      "image": "/images/charms/apple.jpg",
+      "isNew": true,
+      "category": "bestsellers",
+      "tags": ["teacher", "education", "fruit", "gold"],
+      "material": "14k gold plated"
+    },
+    {
+      "id": "teacher-banner",
+      "name": "#1 Teacher",
+      "description": "Teacher banner charm with star accent",
+      "price": 14,
+      "image": "/images/charms/teacher-banner.jpg",
+      "isNew": true,
+      "category": "bestsellers",
+      "tags": ["teacher", "education", "banner", "star"],
+      "material": "14k gold plated"
+    },
+    {
+      "id": "paint-palette",
+      "name": "Paint Palette & Brush",
+      "description": "Colorful artist palette with brush charm",
+      "price": 18,
+      "image": "/images/charms/paint-palette.jpg",
+      "isNew": true,
+      "category": "new-drops",
+      "tags": ["art", "creative", "colorful", "artist", "teacher"],
+      "material": "14k gold plated with enamel"
+    },
+    {
+      "id": "book-stack",
+      "name": "Book Stack",
+      "description": "Stack of books charm for book lovers",
+      "price": 14,
+      "image": "/images/charms/book-stack.jpg",
+      "isNew": true,
+      "category": "new-drops",
+      "tags": ["books", "education", "reading", "teacher", "student"],
+      "material": "14k gold plated"
+    },
+    {
+      "id": "cross",
+      "name": "Cross",
+      "description": "Classic cross charm",
+      "price": 12,
+      "image": "/images/charms/cross.jpg",
+      "isNew": false,
+      "category": "personalize-it",
+      "tags": ["faith", "religious", "spiritual", "classic"],
+      "material": "14k gold plated"
+    },
+    {
+      "id": "bow",
+      "name": "Bow",
+      "description": "Cute bow charm",
+      "price": 12,
+      "image": "/images/charms/bow.jpg",
+      "isNew": false,
+      "category": "personalize-it",
+      "tags": ["cute", "feminine", "bow", "accessory"],
+      "material": "14k gold plated"
+    },
+    {
+      "id": "rainbow",
+      "name": "Rainbow",
+      "description": "Colorful rainbow charm",
+      "price": 16,
+      "image": "/images/charms/rainbow.jpg",
+      "isNew": false,
+      "category": "personalize-it",
+      "tags": ["rainbow", "colorful", "pride", "hope", "joy"],
+      "material": "14k gold plated with enamel"
+    },
+    {
+      "id": "september-birthstone",
+      "name": "September Birthstone",
+      "description": "Sapphire birthstone for September",
+      "price": 14,
+      "image": "/images/charms/september-birthstone.jpg",
+      "isNew": false,
+      "category": "personalize-it",
+      "tags": ["birthstone", "september", "sapphire", "blue"],
+      "material": "14k gold plated with gemstone"
+    },
+    {
+      "id": "puffy-heart",
+      "name": "Puffy Heart",
+      "description": "Classic puffy heart charm",
+      "price": 12,
+      "image": "/images/charms/puffy-heart.jpg",
+      "isNew": false,
+      "category": "personalize-it",
+      "tags": ["heart", "love", "classic", "romantic"],
+      "material": "14k gold plated",
+      "isSoldOut": true
+    },
+    {
+      "id": "dandelion-crayon",
+      "name": "Dandelion Crayon",
+      "description": "Yellow dandelion colored crayon charm",
+      "price": 18,
+      "image": "/images/charms/dandelion-crayon.jpg",
+      "isNew": false,
+      "category": "new-drops",
+      "tags": ["crayon", "teacher", "art", "yellow", "dandelion"],
+      "material": "14k gold plated with enamel"
+    },
+    {
+      "id": "magic-mint-crayon",
+      "name": "Magic Mint Crayon",
+      "description": "Green magic mint colored crayon charm",
+      "price": 18,
+      "image": "/images/charms/magic-mint-crayon.jpg",
+      "isNew": false,
+      "category": "new-drops",
+      "tags": ["crayon", "teacher", "art", "green", "mint"],
+      "material": "14k gold plated with enamel"
+    },
+    {
+      "id": "blizzard-blue-crayon",
+      "name": "Blizzard Blue Crayon",
+      "description": "Blue blizzard colored crayon charm",
+      "price": 18,
+      "image": "/images/charms/blizzard-blue-crayon.jpg",
+      "isNew": false,
+      "category": "new-drops",
+      "tags": ["crayon", "teacher", "art", "blue", "blizzard"],
+      "material": "14k gold plated with enamel"
+    }
+  ],
+  "letterColors": [
+    {
+      "id": "white",
+      "name": "White",
+      "hexColor": "#FFFFFF",
+      "price": 0,
+      "description": "Classic white letter blocks"
+    },
+    {
+      "id": "pink",
+      "name": "Pink",
+      "hexColor": "#F8BBD9",
+      "price": 0,
+      "description": "Soft pink letter blocks"
+    },
+    {
+      "id": "black",
+      "name": "Black",
+      "hexColor": "#000000",
+      "price": 0,
+      "description": "Bold black letter blocks"
+    },
+    {
+      "id": "gold",
+      "name": "Gold",
+      "hexColor": "#FFD700",
+      "price": 15,
+      "description": "Premium gold letter blocks (+$15)"
+    }
+  ],
+  "sizes": [
+    {
+      "id": "xs",
+      "name": "XS",
+      "description": "Extra Small (6.5 inches)",
+      "circumference": "6.5"
+    },
+    {
+      "id": "sm",
+      "name": "S/M",
+      "description": "Small/Medium (7.0 inches)",
+      "circumference": "7.0"
+    },
+    {
+      "id": "ml",
+      "name": "M/L",
+      "description": "Medium/Large (7.5 inches)",
+      "circumference": "7.5"
+    },
+    {
+      "id": "lxl",
+      "name": "L/XL",
+      "description": "Large/Extra Large (8.0 inches)",
+      "circumference": "8.0"
+    }
+  ],
+  "categories": [
+    {
+      "id": "all",
+      "name": "All",
+      "description": "All available items"
+    },
+    {
+      "id": "standard",
+      "name": "Standard",
+      "description": "Classic bracelet styles"
+    },
+    {
+      "id": "collabs",
+      "name": "Collabs",
+      "description": "Collaboration pieces"
+    },
+    {
+      "id": "limited-edition",
+      "name": "Limited Edition",
+      "description": "Special limited releases"
+    },
+    {
+      "id": "engraving",
+      "name": "Engraving",
+      "description": "Custom engraved options"
+    },
+    {
+      "id": "tiny-words",
+      "name": "Tiny Words",
+      "description": "Mini-sized bracelets"
+    }
+  ],
+  "charmCategories": [
+    {
+      "id": "all",
+      "name": "All",
+      "description": "All available charms"
+    },
+    {
+      "id": "bestsellers",
+      "name": "Bestsellers",
+      "description": "Most popular charms"
+    },
+    {
+      "id": "new-drops",
+      "name": "New Drops & Favs",
+      "description": "Latest releases and favorites"
+    },
+    {
+      "id": "personalize-it",
+      "name": "Personalize it",
+      "description": "Personal expression charms"
+    }
+  ],
+  "trendingWords": [
+    "LET THEM",
+    "STRENGTH", 
+    "YOU GOT THIS",
+    "BREATH",
+    "FAITH",
+    "BLESSED",
+    "FEARLESS",
+    "WARRIOR",
+    "MAMA",
+    "TEACHER"
+  ]
+}

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import './App.css';
+import mockData from './data/mockData.json';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -10,8 +11,57 @@ function App() {
     selectedCharms: [],
     size: 'xs'
   });
+  const [selectedCategory, setSelectedCategory] = useState('Standard');
 
   const steps = ['Design', 'Word', 'Charms'];
+  const categories = mockData.categories.map(cat => cat.name);
+  const trendingWords = mockData.trendingWords;
+  const charmCategories = mockData.charmCategories.map(cat => cat.name);
+  
+  const [selectedCharmCategory, setSelectedCharmCategory] = useState('All');
+  const [charmSearchQuery, setCharmSearchQuery] = useState('');
+  const [isCharmSummaryExpanded, setIsCharmSummaryExpanded] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  
+  // Organize bracelets by category
+  const braceletsByCategory = {
+    'All': mockData.bracelets,
+    'Standard': mockData.bracelets.filter(b => b.category === 'standard'),
+    'Collabs': mockData.bracelets.filter(b => b.category === 'collabs'),
+    'Limited Edition': mockData.bracelets.filter(b => b.category === 'limited-edition'),
+    'Engraving': mockData.bracelets.filter(b => b.category === 'engraving'),
+    'Tiny Words': mockData.bracelets.filter(b => b.category === 'tiny-words')
+  };
+
+  // Organize charms by category
+  const charmsByCategory = {
+    'All': mockData.charms,
+    'Bestsellers': mockData.charms.filter(c => c.category === 'bestsellers'),
+    'New Drops & Favs': mockData.charms.filter(c => c.category === 'new-drops'),
+    'Personalize it': mockData.charms.filter(c => c.category === 'personalize-it')
+  };
+
+  // Input validation function
+  const validateInput = (text) => {
+    const allowedChars = /^[a-zA-Z0-9:)\<3!#&:\s]*$/;
+    return text.length >= 2 && text.length <= 13 && allowedChars.test(text);
+  };
+
+  // Get selected bracelet data
+  const getSelectedBracelet = () => {
+    return mockData.bracelets.find(b => b.id === customization.braceletStyle) || mockData.bracelets[0];
+  };
+
+  // Calculate total price
+  const calculateTotal = () => {
+    const selectedBracelet = getSelectedBracelet();
+    let total = selectedBracelet.basePrice;
+    const selectedLetterColor = mockData.letterColors.find(c => c.id === customization.letterColor);
+    if (selectedLetterColor) total += selectedLetterColor.price;
+    const charmsTotal = customization.selectedCharms.reduce((sum, charm) => sum + charm.price, 0);
+    return (total + charmsTotal) * quantity;
+  };
 
   return (
     <div className="App">
@@ -94,7 +144,6 @@ function App() {
               <div style={{
                 width: '300px',
                 height: '300px',
-                border: '20px solid #93C5FD',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
@@ -102,14 +151,57 @@ function App() {
                 fontSize: '24px',
                 fontWeight: 'bold',
                 backgroundColor: 'white',
-                margin: '0 auto 20px'
+                margin: '0 auto 20px',
+                position: 'relative',
+                backgroundImage: `url(${getSelectedBracelet().image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                border: '10px solid #f0f0f0'
               }}>
-                {customization.word}
+                {/* Display letter blocks */}
+                <div style={{ 
+                  display: 'flex', 
+                  gap: '2px',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  {customization.word.split('').map((letter, index) => (
+                    <div key={index} style={{
+                      background: mockData.letterColors.find(c => c.id === customization.letterColor)?.hexColor || '#FFFFFF',
+                      color: customization.letterColor === 'white' ? '#000' : '#FFF',
+                      padding: '4px 6px',
+                      borderRadius: '3px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      border: '1px solid #ddd',
+                      minWidth: '20px',
+                      textAlign: 'center'
+                    }}>
+                      {letter}
+                    </div>
+                  ))}
+                </div>
+                
+                {/* Show selected charms around the bracelet */}
+                {customization.selectedCharms.slice(0, 6).map((charm, index) => (
+                  <div key={index} style={{
+                    position: 'absolute',
+                    width: '20px',
+                    height: '20px',
+                    background: '#FFD700',
+                    borderRadius: '50%',
+                    fontSize: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transform: `rotate(${index * 60}deg) translateY(-140px)`,
+                    transformOrigin: 'center 140px'
+                  }}>
+                    ✨
+                  </div>
+                ))}
               </div>
-              <p>Bracelet Preview</p>
-              <p>Style: {customization.braceletStyle}</p>
-              <p>Word: {customization.word}</p>
-              <p>Letter Color: {customization.letterColor}</p>
             </div>
           </div>
         </div>
@@ -154,118 +246,310 @@ function App() {
             <button style={{ background: 'none', border: 'none', fontSize: '24px' }}>×</button>
           </div>
 
-          {/* Step Navigation */}
+          {/* Content Area */}
           <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-              {steps.map((step, index) => (
-                <React.Fragment key={step}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    border: `2px solid ${currentStep >= index + 1 ? '#4F46E5' : '#e5e7eb'}`,
-                    background: currentStep >= index + 1 ? '#4F46E5' : 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: currentStep >= index + 1 ? 'white' : '#9ca3af',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }} onClick={() => setCurrentStep(index + 1)}>
-                    {index + 1}
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div style={{
-                      flex: 1,
-                      height: '2px',
-                      background: currentStep > index + 1 ? '#4F46E5' : '#e5e7eb',
-                      margin: '0 8px',
-                      alignSelf: 'center'
-                    }} />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', borderBottom: '1px solid #f0f0f0', marginBottom: '24px' }}>
-              {steps.map((step, index) => (
-                <button
-                  key={step}
-                  style={{
-                    flex: 1,
-                    padding: '12px 16px',
-                    border: 'none',
-                    background: 'none',
-                    borderBottom: `2px solid ${currentStep === index + 1 ? '#4F46E5' : 'transparent'}`,
-                    color: currentStep === index + 1 ? '#4F46E5' : '#9ca3af',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => setCurrentStep(index + 1)}
-                >
-                  {step}
-                </button>
-              ))}
-            </div>
-
             {/* Step Content */}
             <div style={{ flex: 1 }}>
-              {currentStep === 1 && (
+              {isReviewMode && (
                 <div>
-                  <h3>Choose Your Bracelet Style</h3>
+                  {/* Review Header */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    marginBottom: '24px'
+                  }}>
+                    <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>Your Custom Bracelet</h2>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '500' }}>Qty:</span>
+                      <select
+                        value={quantity}
+                        onChange={(e) => setQuantity(parseInt(e.target.value))}
+                        style={{
+                          padding: '4px 8px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '4px',
+                          fontSize: '14px'
+                        }}
+                      >
+                        {[...Array(10)].map((_, i) => (
+                          <option key={i + 1} value={i + 1}>{i + 1}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Style Section */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Style</h3>
+                      <button style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#4F46E5', 
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                      onClick={() => {setIsReviewMode(false); setCurrentStep(1);}}>
+                        Edit
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ 
+                        width: '40px', 
+                        height: '40px', 
+                        background: '#e5e7eb', 
+                        borderRadius: '50%',
+                        backgroundImage: `url(${getSelectedBracelet().image})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}></div>
+                      <div>
+                        <div style={{ fontSize: '14px', fontWeight: '500' }}>{getSelectedBracelet().name}</div>
+                        <div style={{ fontSize: '12px', color: '#6b7280' }}>Your Size: {customization.size.toUpperCase()}</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '12px' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '500', marginRight: '8px' }}>Size:</span>
+                      {['XS', 'S/M', 'M/L', 'L/XL'].map(size => (
+                        <button
+                          key={size}
+                          style={{
+                            padding: '6px 12px',
+                            margin: '0 4px',
+                            border: `1px solid ${customization.size.toUpperCase() === size ? '#FFB6C1' : '#e5e7eb'}`,
+                            borderRadius: '4px',
+                            background: customization.size.toUpperCase() === size ? '#FFB6C1' : 'white',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => setCustomization({...customization, size: size.toLowerCase()})}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Lettering Section */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Lettering</h3>
+                      <button style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#4F46E5', 
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                      onClick={() => {setIsReviewMode(false); setCurrentStep(2);}}>
+                        Edit
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>
+                      <strong>Letter Color:</strong> {customization.letterColor.charAt(0).toUpperCase() + customization.letterColor.slice(1)}
+                      {customization.letterColor === 'gold' && ' (+$15)'}
+                    </div>
+                    <div style={{ fontSize: '14px', marginBottom: '12px' }}>
+                      <strong>Word:</strong> {customization.word}
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      {customization.word.split('').map((letter, index) => (
+                        <div key={index} style={{
+                          width: '24px',
+                          height: '24px',
+                          background: '#e5e7eb',
+                          borderRadius: '2px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          fontWeight: '600'
+                        }}>
+                          {letter}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Charms Section */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Charms ({customization.selectedCharms.length})</h3>
+                      <button style={{ 
+                        background: 'none', 
+                        border: 'none', 
+                        color: '#4F46E5', 
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        textDecoration: 'underline'
+                      }}
+                      onClick={() => {setIsReviewMode(false); setCurrentStep(3);}}>
+                        {customization.selectedCharms.length > 0 ? 'Edit' : 'Add'}
+                      </button>
+                    </div>
+                    {customization.selectedCharms.length > 0 ? (
+                      Object.entries(
+                        customization.selectedCharms.reduce((acc, charm) => {
+                          const key = `${charm.id}-${charm.name}`;
+                          if (acc[key]) {
+                            acc[key].quantity += 1;
+                          } else {
+                            acc[key] = { ...charm, quantity: 1 };
+                          }
+                          return acc;
+                        }, {})
+                      ).map(([key, charmData]) => (
+                        <div key={key} style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '8px 0',
+                          borderBottom: '1px solid #f3f4f6'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ 
+                              width: '32px', 
+                              height: '32px', 
+                              background: '#e5e7eb', 
+                              borderRadius: '8px',
+                              backgroundImage: `url(${charmData.image})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center'
+                            }}></div>
+                            <div style={{ fontSize: '14px', fontWeight: '500' }}>{charmData.name}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontSize: '14px' }}>${charmData.price}</span>
+                            <button 
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#4F46E5',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                textDecoration: 'underline'
+                              }}
+                              onClick={() => {
+                                setCustomization({
+                                  ...customization,
+                                  selectedCharms: customization.selectedCharms.filter(c => c.id !== charmData.id)
+                                });
+                              }}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ 
+                        fontSize: '14px', 
+                        color: '#6b7280', 
+                        fontStyle: 'italic',
+                        padding: '12px 0'
+                      }}>
+                        No charms selected
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {!isReviewMode && currentStep === 1 && (
+                <div>
+                  {/* Category Navigation */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <div 
+                      className="category-scroll"
+                      style={{
+                        display: 'flex',
+                        overflowX: 'auto',
+                        gap: '8px',
+                        paddingBottom: '8px'
+                      }}>
+                      {categories.map(category => (
+                        <button
+                          key={category}
+                          style={{
+                            padding: '12px 20px',
+                            border: 'none',
+                            borderRadius: '25px',
+                            background: selectedCategory === category ? '#FFB6C1' : '#f8f9fa',
+                            color: selectedCategory === category ? '#000' : '#6b7280',
+                            fontFamily: 'Larsseit, -apple-system, BlinkMacSystemFont, sans-serif',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            transition: 'all 0.2s ease'
+                          }}
+                          onClick={() => setSelectedCategory(category)}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Bracelet Grid */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                    {['Gold Plated', 'Bluestone', 'Rainbow', 'Pink Chalk'].map(style => (
+                    {braceletsByCategory[selectedCategory].map(bracelet => (
                       <button
-                        key={style}
+                        key={bracelet.id}
                         style={{
                           padding: '16px',
-                          border: `2px solid ${customization.braceletStyle === style.toLowerCase().replace(' ', '-') ? '#4F46E5' : '#f3f4f6'}`,
+                          border: `2px solid ${customization.braceletStyle === bracelet.id ? '#4F46E5' : '#f3f4f6'}`,
                           borderRadius: '8px',
                           background: 'white',
                           textAlign: 'center',
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          position: 'relative'
                         }}
-                        onClick={() => setCustomization({...customization, braceletStyle: style.toLowerCase().replace(' ', '-')})}
+                        onClick={() => setCustomization({...customization, braceletStyle: bracelet.id})}
                       >
-                        <div style={{ width: '40px', height: '40px', background: '#e5e7eb', borderRadius: '50%', margin: '0 auto 8px' }}></div>
-                        <div style={{ fontSize: '12px' }}>{style}</div>
+                        {bracelet.isBestSeller && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '4px',
+                            left: '4px',
+                            background: '#ef4444',
+                            color: 'white',
+                            fontSize: '8px',
+                            fontWeight: '600',
+                            padding: '2px 6px',
+                            borderRadius: '4px'
+                          }}>
+                            BEST SELLER
+                          </div>
+                        )}
+                        <div style={{ 
+                          width: '60px', 
+                          height: '60px', 
+                          background: '#e5e7eb', 
+                          borderRadius: '50%', 
+                          margin: '0 auto 8px',
+                          backgroundImage: `url(${bracelet.image})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center'
+                        }}></div>
+                        <div style={{ fontSize: '12px', fontWeight: '500' }}>{bracelet.name}</div>
+                        <div style={{ fontSize: '11px', color: '#6b7280' }}>${bracelet.basePrice}</div>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              {currentStep === 2 && (
+              {!isReviewMode && currentStep === 2 && (
                 <div>
-                  <h3>Enter Your Word</h3>
-                  <input
-                    type="text"
-                    value={customization.word}
-                    onChange={(e) => setCustomization({...customization, word: e.target.value.toUpperCase()})}
-                    style={{
-                      width: '100%',
-                      padding: '16px',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      textAlign: 'center',
-                      marginBottom: '16px'
-                    }}
-                    placeholder="LET THEM"
-                    maxLength="13"
-                  />
-                  <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '24px' }}>
-                    {13 - customization.word.length} characters remaining
-                  </div>
-                  
-                  <h4>Letter Color</h4>
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                    {[
-                      { id: 'white', name: 'White', color: '#FFFFFF' },
-                      { id: 'pink', name: 'Pink', color: '#F8BBD9' },
-                      { id: 'black', name: 'Black', color: '#000000' },
-                      { id: 'gold', name: 'Gold', color: '#FFD700' }
-                    ].map(color => (
+                  {/* Letter Color Section */}
+                  <h3 style={{ marginBottom: '16px' }}>Letter Color</h3>
+                  <div style={{ display: 'flex', gap: '12px', marginBottom: '32px' }}>
+                    {mockData.letterColors.map(color => (
                       <button
                         key={color.id}
                         style={{
@@ -281,7 +565,7 @@ function App() {
                         <div style={{
                           width: '20px',
                           height: '20px',
-                          background: color.color,
+                          background: color.hexColor,
                           borderRadius: '50%',
                           border: '1px solid #e5e7eb',
                           margin: '0 auto 4px'
@@ -290,31 +574,349 @@ function App() {
                       </button>
                     ))}
                   </div>
-                </div>
-              )}
 
-              {currentStep === 3 && (
-                <div>
-                  <h3>Add Charms (Optional)</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                    {['Teacher', 'Apple', 'Heart', 'Star', 'Cross', 'Rainbow'].map(charm => (
+                  {/* Enter Your Word Section */}
+                  <h3 style={{ marginBottom: '16px' }}>Enter your word</h3>
+                  <input
+                    type="text"
+                    value={customization.word}
+                    onChange={(e) => {
+                      const value = e.target.value.toUpperCase();
+                      if (validateInput(value) || value === '') {
+                        setCustomization({...customization, word: value});
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '16px',
+                      border: `2px solid ${validateInput(customization.word) || customization.word === '' ? '#e5e7eb' : '#ef4444'}`,
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      textAlign: 'center',
+                      marginBottom: '8px',
+                      boxSizing: 'border-box'
+                    }}
+                    placeholder="LET THEM"
+                    maxLength="13"
+                  />
+                  <div style={{ 
+                    fontSize: '12px', 
+                    color: '#9ca3af', 
+                    marginBottom: '24px',
+                    lineHeight: '1.4'
+                  }}>
+                    13 characters maximum, minimum 2. Letter, number, :), &lt;3, !, #, &amp;, and : characters only.
+                  </div>
+                  
+                  {/* Trending Words Section */}
+                  <h4 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: '600' }}>Trending Words</h4>
+                  <div 
+                    className="category-scroll"
+                    style={{
+                      display: 'flex',
+                      overflowX: 'auto',
+                      gap: '8px',
+                      paddingBottom: '8px'
+                    }}
+                  >
+                    {trendingWords.map(word => (
                       <button
-                        key={charm}
+                        key={word}
                         style={{
-                          padding: '12px',
-                          border: '2px solid #f3f4f6',
-                          borderRadius: '8px',
+                          padding: '12px 20px',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '25px',
                           background: 'white',
-                          textAlign: 'center',
-                          cursor: 'pointer'
+                          color: '#374151',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          flexShrink: 0,
+                          transition: 'all 0.2s ease'
                         }}
+                        onClick={() => setCustomization({...customization, word: word})}
                       >
-                        <div style={{ width: '40px', height: '40px', background: '#e5e7eb', borderRadius: '8px', margin: '0 auto 8px' }}></div>
-                        <div style={{ fontSize: '11px' }}>{charm}</div>
-                        <div style={{ fontSize: '11px', fontWeight: '600' }}>$14</div>
+                        {word}
                       </button>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {!isReviewMode && currentStep === 3 && (
+                <div>
+                  {/* Header */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ margin: 0, marginBottom: '4px' }}>Charms <span style={{ fontWeight: '400', color: '#9ca3af' }}>(Optional Add On)</span></h3>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div style={{ marginBottom: '20px', position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Search"
+                      value={charmSearchQuery}
+                      onChange={(e) => setCharmSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px 12px 40px',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <div style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: '#9ca3af'
+                    }}>🔍</div>
+                    <button style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      background: '#FFB6C1',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}>
+                      FILTER & SORT
+                    </button>
+                  </div>
+
+                  {/* Category Navigation */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <div 
+                      className="category-scroll"
+                      style={{
+                        display: 'flex',
+                        overflowX: 'auto',
+                        gap: '8px',
+                        paddingBottom: '8px'
+                      }}
+                    >
+                      {charmCategories.map(category => (
+                        <button
+                          key={category}
+                          style={{
+                            padding: '8px 16px',
+                            border: 'none',
+                            borderRadius: '20px',
+                            background: selectedCharmCategory === category ? '#FFB6C1' : '#f8f9fa',
+                            color: selectedCharmCategory === category ? '#000' : '#6b7280',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            flexShrink: 0,
+                            transition: 'all 0.2s ease'
+                          }}
+                          onClick={() => setSelectedCharmCategory(category)}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Charms Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                    {charmsByCategory[selectedCharmCategory]
+                      .filter(charm => 
+                        charmSearchQuery === '' || 
+                        charm.name.toLowerCase().includes(charmSearchQuery.toLowerCase())
+                      )
+                      .map(charm => (
+                      <div
+                        key={charm.id}
+                        style={{
+                          padding: '12px',
+                          border: '1px solid #f3f4f6',
+                          borderRadius: '8px',
+                          background: 'white',
+                          textAlign: 'center',
+                          cursor: charm.isSoldOut ? 'not-allowed' : 'pointer',
+                          opacity: charm.isSoldOut ? 0.5 : 1,
+                          position: 'relative'
+                        }}
+                        onClick={() => {
+                          if (!charm.isSoldOut) {
+                            const currentCount = customization.selectedCharms.filter(c => c.id === charm.id).length;
+                            if (currentCount < 9) {
+                              setCustomization({
+                                ...customization,
+                                selectedCharms: [...customization.selectedCharms, charm]
+                              });
+                            }
+                          }
+                        }}
+                      >
+                        {charm.isNew && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '4px',
+                            left: '4px',
+                            background: '#4F46E5',
+                            color: 'white',
+                            fontSize: '8px',
+                            fontWeight: '600',
+                            padding: '2px 6px',
+                            borderRadius: '4px'
+                          }}>
+                            NEW
+                          </div>
+                        )}
+                        {charm.isSoldOut && (
+                          <div style={{
+                            position: 'absolute',
+                            top: '4px',
+                            right: '4px',
+                            background: '#ef4444',
+                            color: 'white',
+                            fontSize: '8px',
+                            fontWeight: '600',
+                            padding: '2px 6px',
+                            borderRadius: '4px'
+                          }}>
+                            SOLD OUT
+                          </div>
+                        )}
+                        <div style={{
+                          position: 'absolute',
+                          top: '4px',
+                          right: '4px',
+                          width: '20px',
+                          height: '20px',
+                          border: '2px solid #e5e7eb',
+                          borderRadius: '50%',
+                          background: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          color: '#4F46E5'
+                        }}>
+                          +
+                        </div>
+                        <div style={{ 
+                          width: '40px', 
+                          height: '40px', 
+                          background: '#e5e7eb', 
+                          borderRadius: '8px', 
+                          margin: '0 auto 8px',
+                          backgroundImage: `url(${charm.image})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center'
+                        }}></div>
+                        <div style={{ fontSize: '10px', marginBottom: '4px' }}>{charm.name}</div>
+                        <div style={{ fontSize: '10px', fontWeight: '600' }}>${charm.price}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Selected Charms Summary */}
+                  {customization.selectedCharms.length > 0 && (
+                    <div style={{ 
+                      marginTop: '20px', 
+                      padding: '16px', 
+                      background: '#f8f9fa', 
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <div 
+                        style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => setIsCharmSummaryExpanded(!isCharmSummaryExpanded)}
+                      >
+                        <h4 style={{ margin: 0, fontSize: '14px' }}>Your Charms ({customization.selectedCharms.length})</h4>
+                        <div style={{ 
+                          transform: isCharmSummaryExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                          fontSize: '16px'
+                        }}>
+                          ^
+                        </div>
+                      </div>
+                      
+                      {isCharmSummaryExpanded && (
+                        <div style={{ 
+                          marginTop: '12px',
+                          maxHeight: '200px',
+                          overflowY: 'auto'
+                        }}>
+                          {Object.entries(
+                            customization.selectedCharms.reduce((acc, charm) => {
+                              const key = `${charm.id}-${charm.name}`;
+                              if (acc[key]) {
+                                acc[key].quantity += 1;
+                              } else {
+                                acc[key] = { ...charm, quantity: 1 };
+                              }
+                              return acc;
+                            }, {})
+                          ).map(([key, charmData]) => (
+                            <div key={key} style={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              padding: '8px 0',
+                              borderBottom: '1px solid #e5e7eb'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ 
+                                  width: '20px', 
+                                  height: '20px', 
+                                  background: '#e5e7eb', 
+                                  borderRadius: '4px',
+                                  backgroundImage: `url(${charmData.image})`,
+                                  backgroundSize: 'cover',
+                                  backgroundPosition: 'center'
+                                }}></div>
+                                <div>
+                                  <div style={{ fontSize: '12px', fontWeight: '500' }}>{charmData.name}</div>
+                                  <div style={{ fontSize: '11px', color: '#6b7280' }}>${charmData.price}</div>
+                                </div>
+                              </div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '12px', fontWeight: '500' }}>x{charmData.quantity}</span>
+                                <button
+                                  style={{
+                                    background: '#ef4444',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    padding: '4px 8px',
+                                    fontSize: '10px',
+                                    cursor: 'pointer'
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setCustomization({
+                                      ...customization,
+                                      selectedCharms: customization.selectedCharms.filter(c => c.id !== charmData.id)
+                                    });
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -340,9 +942,17 @@ function App() {
                 fontWeight: '600',
                 cursor: 'pointer'
               }}
-              onClick={() => currentStep < 3 ? setCurrentStep(currentStep + 1) : alert('Add to Cart!')}
+              onClick={() => {
+                if (isReviewMode) {
+                  alert(`Add to Cart $${calculateTotal()}`);
+                } else if (currentStep < 3) {
+                  setCurrentStep(currentStep + 1);
+                } else {
+                  setIsReviewMode(true);
+                }
+              }}
             >
-              {currentStep < 3 ? 'NEXT' : 'ADD TO CART $49'}
+              {isReviewMode ? `ADD TO CART $${calculateTotal()}` : (currentStep < 3 ? 'NEXT' : 'REVIEW')}
             </button>
           </div>
         </div>
