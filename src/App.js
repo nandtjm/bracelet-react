@@ -43,11 +43,15 @@ function App() {
     'Personalize it': mockData.charms.filter(c => c.category === 'personalize-it')
   };
 
-  // Input validation function
-  const validateInput = (text) => {
-    if (text === '') return true; // Allow empty input
+  // Character validation (for allowed characters and length)
+  const isValidCharacters = (text) => {
     const allowedChars = /^[a-zA-Z0-9:)\<3!#&:\s]*$/;
-    return text.length >= 2 && text.length <= 13 && allowedChars.test(text);
+    return allowedChars.test(text) && text.length <= 13;
+  };
+
+  // Final validation (for completed words)
+  const isValidWord = (text) => {
+    return text === '' || (text.length >= 2 && text.length <= 13 && isValidCharacters(text));
   };
 
   // Get selected bracelet data
@@ -740,15 +744,15 @@ function App() {
                     value={customization.word}
                     onChange={(e) => {
                       const value = e.target.value.toUpperCase();
-                      // Allow completely empty string and valid inputs
-                      if (value === '' || validateInput(value)) {
+                      // Allow typing as long as characters are valid and within length limit
+                      if (isValidCharacters(value)) {
                         setCustomization({...customization, word: value});
                       }
                     }}
                     style={{
                       width: '100%',
                       padding: '16px',
-                      border: `2px solid ${validateInput(customization.word) ? '#e5e7eb' : '#ef4444'}`,
+                      border: `2px solid ${isValidWord(customization.word) ? '#e5e7eb' : '#ef4444'}`,
                       borderRadius: '8px',
                       fontSize: '16px',
                       textAlign: 'center',
