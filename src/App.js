@@ -73,6 +73,23 @@ function App() {
     return selectedBracelet.image;
   };
 
+  // Get letter image path for pre-rendered positioning
+  const getLetterImagePath = (letter, letterPosition, totalCharCount, letterColor) => {
+    const letterData = mockData.letterImages[letterColor];
+    if (!letterData || !letterData[letter.toUpperCase()]) {
+      return null; // No image available for this letter
+    }
+    
+    const charCountKey = `${totalCharCount}char`;
+    const positionImages = letterData[letter.toUpperCase()][charCountKey];
+    
+    if (!positionImages || letterPosition >= positionImages.length) {
+      return null; // No image for this position
+    }
+    
+    return positionImages[letterPosition];
+  };
+
   // Process word for display (handle spaces as stone separators)
   const processWordForDisplay = (word) => {
     if (!word) return [];
@@ -200,71 +217,70 @@ function App() {
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center'
                 }}>
-                  {/* Letter blocks and stone spacers positioned in gaps when word is present */}
-                  {customization.word && processWordForDisplay(customization.word).map((item, itemIndex) => {
-                    const totalItems = processWordForDisplay(customization.word).length;
-                    // Position letters at bottom center of bracelet in the gaps
-                    const angleRange = 120; // 120 degrees range for letters at bottom
-                    const startAngle = 210 - (angleRange / 2); // Start angle to center the word
-                    const angleStep = angleRange / (totalItems + 1);
-                    const angle = startAngle + (angleStep * (itemIndex + 1));
+                  {/* Pre-rendered letter images overlaid on bracelet */}
+                  {customization.word && (() => {
+                    const wordChars = customization.word.replace(/\s/g, ''); // Remove spaces for letter positioning
+                    const totalCharCount = wordChars.length;
+                    let letterPosition = 0;
                     
-                    const radius = 165; // Position items inside the gaps
-                    const x = Math.cos(angle * Math.PI / 180) * radius;
-                    const y = Math.sin(angle * Math.PI / 180) * radius;
-                    
-                    if (item.isSpace) {
-                      // Render stone separator for spaces
-                      return (
-                        <div
-                          key={`space-${itemIndex}`}
-                          className="stone-separator"
-                          style={{
-                            position: 'absolute',
-                            left: '50%',
-                            top: '50%',
-                            transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                            width: '12px',
-                            height: '12px',
-                            borderRadius: '50%',
-                            background: '#8B9DC3', // Bluestone color for separator
-                            border: '1px solid #6B7FA3',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                            zIndex: 10
-                          }}
-                        />
-                      );
-                    } else {
-                      // Render letter block
-                      return (
-                        <div
-                          key={`letter-${itemIndex}`}
-                          className="letter-block"
-                          style={{
-                            position: 'absolute',
-                            left: '50%',
-                            top: '50%',
-                            transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                            width: '24px',
-                            height: '24px',
-                            borderRadius: '4px',
-                            background: mockData.letterColors.find(c => c.id === customization.letterColor)?.hexColor || '#FFFFFF',
-                            color: customization.letterColor === 'white' ? '#000' : '#FFF',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '11px',
-                            fontWeight: 'bold',
-                            border: '1px solid #ddd',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                            zIndex: 10
-                          }}
-                        >
-                          {item.char}
-                        </div>
-                      );
-                    }
-                  })}
+                    return processWordForDisplay(customization.word).map((item, itemIndex) => {
+                      if (item.isSpace) {
+                        // Spaces are handled by the gap image itself, no need to render separately
+                        return null;
+                      } else {
+                        // Get pre-rendered letter image path
+                        const letterImagePath = getLetterImagePath(
+                          item.char, 
+                          letterPosition, 
+                          totalCharCount, 
+                          customization.letterColor
+                        );
+                        letterPosition++; // Increment only for actual letters, not spaces
+                        
+                        if (!letterImagePath) {
+                          // Fallback to text if no image available
+                          return (
+                            <div
+                              key={`letter-fallback-${itemIndex}`}
+                              style={{
+                                position: 'absolute',
+                                left: '50%',
+                                top: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                color: 'red',
+                                fontSize: '12px',
+                                zIndex: 10
+                              }}
+                            >
+                              {item.char}
+                            </div>
+                          );
+                        }
+                        
+                        return (
+                          <img
+                            key={`letter-${itemIndex}`}
+                            src={letterImagePath}
+                            alt={`Letter ${item.char}`}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'contain',
+                              zIndex: 10,
+                              pointerEvents: 'none'
+                            }}
+                            onError={(e) => {
+                              console.log(`Failed to load letter image: ${letterImagePath}`);
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        );
+                      }
+                    }).filter(Boolean); // Remove null entries (spaces)
+                  })()}
 
                   {/* Charm positions around the top of the bracelet */}
                   {customization.selectedCharms.slice(0, 6).map((charm, charmIndex) => {
