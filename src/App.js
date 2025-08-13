@@ -73,21 +73,22 @@ function App() {
     return selectedBracelet.image;
   };
 
-  // Get letter image path for pre-rendered positioning
+  // Get letter image path for pre-rendered positioning (updated for direct key access)
   const getLetterImagePath = (letter, letterPosition, totalCharCount, letterColor) => {
     const letterData = mockData.letterImages[letterColor];
     if (!letterData || !letterData[letter.toUpperCase()]) {
       return null; // No image available for this letter
     }
     
-    const charCountKey = `${totalCharCount}char`;
-    const positionImages = letterData[letter.toUpperCase()][charCountKey];
+    // Direct key access: "3-1", "3-2", "3-3" etc.
+    const positionKey = `${totalCharCount}-${letterPosition + 1}`; // +1 because position is 0-indexed but images are 1-indexed
+    const imagePath = letterData[letter.toUpperCase()][positionKey];
     
-    if (!positionImages || letterPosition >= positionImages.length) {
+    if (!imagePath) {
       return null; // No image for this position
     }
     
-    return positionImages[letterPosition];
+    return imagePath;
   };
 
   // Process word for display (handle spaces as stone separators)
