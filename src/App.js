@@ -6,7 +6,7 @@ function App() {
   const [currentStep, setCurrentStep] = useState(1);
   const [customization, setCustomization] = useState({
     braceletStyle: 'bluestone',
-    word: '',
+    word: '', // Ensure word starts empty
     letterColor: 'white',
     selectedCharms: [],
     size: 'xs'
@@ -45,6 +45,7 @@ function App() {
 
   // Input validation function
   const validateInput = (text) => {
+    if (text === '') return true; // Allow empty input
     const allowedChars = /^[a-zA-Z0-9:)\<3!#&:\s]*$/;
     return text.length >= 2 && text.length <= 13 && allowedChars.test(text);
   };
@@ -275,7 +276,7 @@ function App() {
                             }}
                             onError={(e) => {
                               console.log(`Failed to load letter image: ${letterImagePath}`);
-                              e.target.style.display = 'none';
+                              // Don't hide the image, just log the error
                             }}
                           />
                         );
@@ -739,14 +740,15 @@ function App() {
                     value={customization.word}
                     onChange={(e) => {
                       const value = e.target.value.toUpperCase();
-                      if (validateInput(value) || value === '') {
+                      // Allow completely empty string and valid inputs
+                      if (value === '' || validateInput(value)) {
                         setCustomization({...customization, word: value});
                       }
                     }}
                     style={{
                       width: '100%',
                       padding: '16px',
-                      border: `2px solid ${validateInput(customization.word) || customization.word === '' ? '#e5e7eb' : '#ef4444'}`,
+                      border: `2px solid ${validateInput(customization.word) ? '#e5e7eb' : '#ef4444'}`,
                       borderRadius: '8px',
                       fontSize: '16px',
                       textAlign: 'center',
