@@ -223,8 +223,8 @@ function App() {
                   backgroundRepeat: 'no-repeat',
                   backgroundPosition: 'center'
                 }}>
-                  {/* Pre-rendered letter images overlaid on bracelet */}
-                  {customization.word && (() => {
+                  {/* Pre-rendered letter images overlaid on bracelet - only show for 2+ characters */}
+                  {customization.word && customization.word.replace(/\s/g, '').length >= 2 && (() => {
                     const wordChars = customization.word.replace(/\s/g, ''); // Remove spaces for letter positioning
                     const totalCharCount = wordChars.length;
                     let letterPosition = 0;
