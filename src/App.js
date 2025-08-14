@@ -133,9 +133,19 @@ function App() {
     // Convert to URL format (01, 02, 03, etc.)
     const urlPosition = actualBraceletPosition.toString().padStart(2, '0');
     
+    // Map letter color to URL code
+    const colorMap = {
+      'white': 'WL',
+      'pink': 'PK', 
+      'black': 'BL',
+      'gold': 'GL'
+    };
+    
+    const colorCode = colorMap[letterColor] || 'WL'; // Default to white if color not found
+    
     // Use O format for odd word lengths, E format for even word lengths
     const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // O for odd, E for even
-    return `https://res.cloudinary.com/drvnwq9bm/image/upload/w_915,f_auto/customizer-v2/colors/WL/${letter.toUpperCase()}/WL-${letter.toUpperCase()}-${formatCode}-${urlPosition}.png`;
+    return `https://res.cloudinary.com/drvnwq9bm/image/upload/w_915,f_auto/customizer-v2/colors/${colorCode}/${letter.toUpperCase()}/${colorCode}-${letter.toUpperCase()}-${formatCode}-${urlPosition}.png`;
   };
 
   // Process word for display (handle spaces as stone separators)
