@@ -108,29 +108,15 @@ function App() {
     return positionMaps[wordLength] || [7];
   };
 
-  const getSpaceStoneImagePath = (braceletType, braceletPosition, isTrailingSpace) => {
-    // Return position-specific space stone URL based on bracelet type, position, and type
+  const getSpaceStoneImagePath = (braceletType, braceletPosition, totalCharCount) => {
+    // Space stone pattern: {BraceletType}-{Position}-{O/E}.png
+    // O/E based on total word length (same as letters): O for odd, E for even
     const urlPosition = braceletPosition.toString().padStart(2, '0');
-    const spaceType = isTrailingSpace ? 'O' : 'E'; // O for trailing/end, E for between words
+    const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // Same logic as letters
     
-    // Position-specific timestamps and URLs for Bluestone bracelet
-    const bluestoneSpaceUrls = {
-      '07-O': 'https://cld.accentuate.io/6899436781649/1656025882329/Bluestone-07-O.png?v=0&options=w_915,f_auto',
-      '08-E': 'https://cld.accentuate.io/6899436781649/1656025883307/Bluestone-08-E.png?v=0&options=w_915,f_auto',
-      '08-O': 'https://cld.accentuate.io/6899436781649/1656025884148/Bluestone-08-O.png?v=0&options=w_915,f_auto',
-      '09-E': 'https://cld.accentuate.io/6899436781649/1656025885214/Bluestone-09-E.png?v=0&options=w_915,f_auto',
-      '09-O': 'https://cld.accentuate.io/6899436781649/1656025886179/Bluestone-09-O.png?v=0&options=w_915,f_auto',
-      '11-O': 'https://cld.accentuate.io/6899436781649/1656025890186/Bluestone-11-O.png?v=0&options=w_915,f_auto'
-    };
-    
-    switch (braceletType.toLowerCase()) {
-      case 'bluestone':
-        const key = `${urlPosition}-${spaceType}`;
-        return bluestoneSpaceUrls[key] || bluestoneSpaceUrls['08-E']; // Default fallback
-      // Add other bracelet types here when available
-      default:
-        return bluestoneSpaceUrls[`${urlPosition}-${spaceType}`] || bluestoneSpaceUrls['08-E'];
-    }
+    // Generate space stone URL following the pattern
+    const braceletTypeName = braceletType.charAt(0).toUpperCase() + braceletType.slice(1); // Capitalize first letter
+    return `https://cld.accentuate.io/6899436781649/1656025881348/${braceletTypeName}-${urlPosition}-${formatCode}.png?v=0&options=w_915,f_auto`;
   };
 
   const getLetterImagePath = (letter, letterPosition, totalCharCount, letterColor, isTrailingSpace = false) => {
@@ -141,7 +127,7 @@ function App() {
     // Handle spaces with position-specific stone images
     if (letter === ' ') {
       const selectedBracelet = getSelectedBracelet();
-      return getSpaceStoneImagePath(selectedBracelet.id, actualBraceletPosition, isTrailingSpace);
+      return getSpaceStoneImagePath(selectedBracelet.id, actualBraceletPosition, totalCharCount);
     }
     
     // Convert to URL format (01, 02, 03, etc.)
