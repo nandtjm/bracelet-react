@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import mockData from './data/mockData.json';
 
@@ -25,6 +25,7 @@ function App() {
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
   const [hoveredCharm, setHoveredCharm] = useState(null);
+  const [charmImageDimensions, setCharmImageDimensions] = useState({});
   
   // Organize bracelets by category
   const braceletsByCategory = {
@@ -234,6 +235,100 @@ function App() {
     return `/images/charms/${folderName}/${charmName.charAt(0).toUpperCase() + charmName.slice(1).toLowerCase()}_POS_${positionNumber.toString().padStart(2, '0')}.webp`;
   };
 
+  // Helper function to get position-specific charm styles (only position values)
+  const getCharmPositionStyles = (position) => {
+    const positionStyles = [
+      // Position 1
+      {
+        top: '18%',
+        left: '-75%',
+        opacity: 1
+      },
+      // Position 2
+      {
+        right: '7%',
+        top: '35%',
+        opacity: 1
+      },
+      // Position 3
+      {
+        right: '15%',
+        top: '-8%',
+        opacity: 1
+      },
+      // Position 4
+      {
+        bottom: '8%',
+        left: '-40%',
+        opacity: 1
+      },
+      // Position 5
+      {
+        left: '12%',
+        bottom: '3%',
+        opacity: 1
+      },
+      // Position 6 (mirrored from position 4)
+      {
+        bottom: '8%',
+        right: '-40%',
+        opacity: 1
+      },
+      // Position 7 (mirrored from position 3)
+      {
+        left: '15%',
+        top: '-8%',
+        opacity: 1
+      },
+      // Position 8 (mirrored from position 2)
+      {
+        left: '7%',
+        top: '35%',
+        opacity: 1
+      },
+      // Position 9 (mirrored from position 1)
+      {
+        top: '18%',
+        right: '-75%',
+        opacity: 1
+      }
+    ];
+    
+    return positionStyles[position] || {};
+  };
+
+  // Helper function to get dynamic image dimensions
+  // Load image dimensions when charms are added
+  useEffect(() => {
+    customization.selectedCharms.forEach(charm => {
+      if (charm.dropzoneIndex !== undefined) {
+        const imagePath = getCharmPositionImagePath(charm.name, charm.dropzoneIndex);
+        const charmKey = `${charm.id}-${charm.dropzoneIndex}`;
+        
+        if (!charmImageDimensions[charmKey]) {
+          const img = new Image();
+          img.onload = () => {
+            const width = img.naturalWidth;
+            const height = img.naturalHeight;
+            const scale = 6;
+            const centerWidth = -(width / scale / 2);
+            
+            setCharmImageDimensions(prev => ({
+              ...prev,
+              [charmKey]: {
+                '--image-width': `${width}px`,
+                '--image-height': `${height}px`,
+                '--image-scale': scale.toString(),
+                '--center-width': `${centerWidth}px`
+              }
+            }));
+          };
+          img.src = imagePath;
+        }
+      }
+    });
+  }, [customization.selectedCharms]);
+
   return (
     <div className="App">
       <div style={{ 
@@ -416,14 +511,11 @@ function App() {
                                     aria-disabled="false" 
                                     aria-roledescription="draggable" 
                                     style={{ 
-                                      '--image-width': '700px', 
-                                      '--image-height': '483px', 
-                                      '--image-scale': '6', 
-                                      '--center-width': '-50px', 
-                                      right: '7%', 
-                                      top: '35%', 
-                                      opacity: 1,
-                                      position: 'absolute'
+                                      ...getCharmPositionStyles(index),
+                                      ...(charmImageDimensions[`${charmInThisDropzone.id}-${index}`] || {}),
+                                      position: 'absolute',
+                                      width: '66px',
+                                      height: '77px'
                                     }}
                                   >
                                     <img 
