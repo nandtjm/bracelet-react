@@ -86,22 +86,23 @@ function App() {
 
   // Get letter image path for pre-rendered positioning (updated for direct key access)
   const getCenteredBraceletPositions = (wordLength) => {
-    // Center position is 7 (middle of 13 positions)
-    // Use specific position mappings to ensure exact match with competitor
+    // Position 7 is center. Pattern based on your specification:
+    // Even numbers: Start from 7,8 and expand outward  
+    // Odd numbers: Center on 7 and expand both ways
     const positionMaps = {
       1: [7],
-      2: [7, 8], // Center-right positioning for better balance
-      3: [6, 7, 8], // Center on position 7
-      4: [5, 6, 7, 8], // Matches example.html exactly
-      5: [5, 6, 7, 8, 9], // Center on position 7
-      6: [4, 5, 6, 7, 8, 9], // Even spread
-      7: [4, 5, 6, 7, 8, 9, 10], // Center on position 7
-      8: [3, 4, 5, 6, 7, 8, 9, 10],
-      9: [3, 4, 5, 6, 7, 8, 9, 10, 11],
-      10: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
-      11: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-      12: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
-      13: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+      2: [7, 8],                           // Start 7,8
+      3: [6, 7, 8],                        // Center on 7: add 6 before
+      4: [6, 7, 8, 9],                     // From 7,8 → add 6 before, 9 after  
+      5: [5, 6, 7, 8, 9],                  // From 6,7,8 → add 5 before, 9 after
+      6: [5, 6, 7, 8, 9, 10],              // From 6,7,8,9 → add 5 before, 10 after
+      7: [4, 5, 6, 7, 8, 9, 10],           // From 5,6,7,8,9 → add 4 before, 10 after
+      8: [4, 5, 6, 7, 8, 9, 10, 11],       // From 5,6,7,8,9,10 → add 4 before, 11 after
+      9: [3, 4, 5, 6, 7, 8, 9, 10, 11],    // From 4,5,6,7,8,9,10 → add 3 before, 11 after
+      10: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // From 4,5,6,7,8,9,10,11 → add 3 before, 12 after
+      11: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], // From 3,4,5,6,7,8,9,10,11 → add 2 before, 12 after
+      12: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13], // From 3,4,5,6,7,8,9,10,11,12 → add 2 before, 13 after
+      13: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] // All positions
     };
     
     return positionMaps[wordLength] || [7];
