@@ -67,33 +67,87 @@ function App() {
       return selectedBracelet.image; // No gaps image
     }
     
-    // Count only letters/numbers, excluding spaces
-    const charCount = customization.word.replace(/\s/g, '').length;
+    // Count all characters including spaces for bracelet variant selection
+    const totalCharCount = customization.word.length;
     
-    // Use appropriate gap image based on character count (2-13)
-    if (charCount >= 2 && charCount <= 13 && selectedBracelet.gapImages) {
-      return selectedBracelet.gapImages[charCount.toString()] || selectedBracelet.image;
+    // Only show gap images if there are at least 2 non-space characters
+    const nonSpaceCharCount = customization.word.replace(/\s/g, '').length;
+    if (nonSpaceCharCount < 2) {
+      return selectedBracelet.image;
+    }
+    
+    // Use appropriate gap image based on total character count including spaces (2-13)
+    if (totalCharCount >= 2 && totalCharCount <= 13 && selectedBracelet.gapImages) {
+      return selectedBracelet.gapImages[totalCharCount.toString()] || selectedBracelet.image;
     }
     
     return selectedBracelet.image;
   };
 
   // Get letter image path for pre-rendered positioning (updated for direct key access)
-  const getLetterImagePath = (letter, letterPosition, totalCharCount, letterColor) => {
-    const letterData = mockData.letterImages[letterColor];
-    if (!letterData || !letterData[letter.toUpperCase()]) {
-      return null; // No image available for this letter
+  const getCenteredBraceletPositions = (wordLength) => {
+    // Center position is 7 (middle of 13 positions)
+    // Use specific position mappings to ensure exact match with competitor
+    const positionMaps = {
+      1: [7],
+      2: [7, 8], // Center-right positioning for better balance
+      3: [6, 7, 8], // Center on position 7
+      4: [5, 6, 7, 8], // Matches example.html exactly
+      5: [5, 6, 7, 8, 9], // Center on position 7
+      6: [4, 5, 6, 7, 8, 9], // Even spread
+      7: [4, 5, 6, 7, 8, 9, 10], // Center on position 7
+      8: [3, 4, 5, 6, 7, 8, 9, 10],
+      9: [3, 4, 5, 6, 7, 8, 9, 10, 11],
+      10: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      11: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      12: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      13: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    };
+    
+    return positionMaps[wordLength] || [7];
+  };
+
+  const getSpaceStoneImagePath = (braceletType, braceletPosition, isTrailingSpace) => {
+    // Return position-specific space stone URL based on bracelet type, position, and type
+    const urlPosition = braceletPosition.toString().padStart(2, '0');
+    const spaceType = isTrailingSpace ? 'O' : 'E'; // O for trailing/end, E for between words
+    
+    // Position-specific timestamps and URLs for Bluestone bracelet
+    const bluestoneSpaceUrls = {
+      '07-O': 'https://cld.accentuate.io/6899436781649/1656025882329/Bluestone-07-O.png?v=0&options=w_915,f_auto',
+      '08-E': 'https://cld.accentuate.io/6899436781649/1656025883307/Bluestone-08-E.png?v=0&options=w_915,f_auto',
+      '08-O': 'https://cld.accentuate.io/6899436781649/1656025884148/Bluestone-08-O.png?v=0&options=w_915,f_auto',
+      '09-E': 'https://cld.accentuate.io/6899436781649/1656025885214/Bluestone-09-E.png?v=0&options=w_915,f_auto',
+      '09-O': 'https://cld.accentuate.io/6899436781649/1656025886179/Bluestone-09-O.png?v=0&options=w_915,f_auto',
+      '11-O': 'https://cld.accentuate.io/6899436781649/1656025890186/Bluestone-11-O.png?v=0&options=w_915,f_auto'
+    };
+    
+    switch (braceletType.toLowerCase()) {
+      case 'bluestone':
+        const key = `${urlPosition}-${spaceType}`;
+        return bluestoneSpaceUrls[key] || bluestoneSpaceUrls['08-E']; // Default fallback
+      // Add other bracelet types here when available
+      default:
+        return bluestoneSpaceUrls[`${urlPosition}-${spaceType}`] || bluestoneSpaceUrls['08-E'];
+    }
+  };
+
+  const getLetterImagePath = (letter, letterPosition, totalCharCount, letterColor, isTrailingSpace = false) => {
+    // Get centered positions for this word length
+    const centeredPositions = getCenteredBraceletPositions(totalCharCount);
+    const actualBraceletPosition = centeredPositions[letterPosition]; // letterPosition is 0-indexed
+    
+    // Handle spaces with position-specific stone images
+    if (letter === ' ') {
+      const selectedBracelet = getSelectedBracelet();
+      return getSpaceStoneImagePath(selectedBracelet.id, actualBraceletPosition, isTrailingSpace);
     }
     
-    // Direct key access: "3-1", "3-2", "3-3" etc.
-    const positionKey = `${totalCharCount}-${letterPosition + 1}`; // +1 because position is 0-indexed but images are 1-indexed
-    const imagePath = letterData[letter.toUpperCase()][positionKey];
+    // Convert to URL format (01, 02, 03, etc.)
+    const urlPosition = actualBraceletPosition.toString().padStart(2, '0');
     
-    if (!imagePath) {
-      return null; // No image for this position
-    }
-    
-    return imagePath;
+    // Return direct Cloudinary URL for centered positioning - using O format like Little Words Project
+    return `https://res.cloudinary.com/drvnwq9bm/image/upload/w_915,f_auto/customizer-v2/colors/WL/${letter.toUpperCase()}/WL-${letter.toUpperCase()}-O-${urlPosition}.png`;
   };
 
   // Process word for display (handle spaces as stone separators)
@@ -202,92 +256,83 @@ function App() {
             justifyContent: 'center' 
           }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{
-                width: '450px',
-                height: '450px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '24px',
-                fontWeight: 'bold',
-                margin: '0 auto 20px',
-                position: 'relative'
-              }}>
-                {/* Base bracelet container */}
-                <div className="bracelet-container" style={{
-                  position: 'relative',
-                  width: '100%',
-                  height: '100%',
-                  backgroundImage: `url(${getBraceletImage()})`,
-                  backgroundSize: 'contain',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'center'
-                }}>
-                  {/* Pre-rendered letter images overlaid on bracelet - only show for 2+ characters */}
-                  {customization.word && customization.word.replace(/\s/g, '').length >= 2 && (() => {
-                    const wordChars = customization.word.replace(/\s/g, ''); // Remove spaces for letter positioning
-                    const totalCharCount = wordChars.length;
-                    let letterPosition = 0;
+              <div className="bracelet-preview-container">
+                {/* Match Little Words Project structure exactly */}
+                <div className="product-canvas">
+                  <div className="product-overlapping">
+                    {/* Main bracelet image - not background, but actual img element */}
+                    <img
+                      src={getBraceletImage()}
+                      alt="Custom Bracelet"
+                      className="main-bracelet-image"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'contain'
+                      }}
+                    />
+
+                    {/* Main charm overlay */}
+                    <div className="_productOverlappingMainCharm_c850n_13">
+                      <img
+                        src="https://cld.accentuate.io/6899436781649/1655920066230/Charm-gold-yellow.Denoiser-moved.png?v=1724640829437&options=w_900"
+                        alt=""
+                        loading="lazy"
+                        width="900"
+                        height="900"
+                        className="max-w-full h-full object-contain"
+                      />
+                    </div>
                     
-                    return processWordForDisplay(customization.word).map((item, itemIndex) => {
-                      if (item.isSpace) {
-                        // Spaces are handled by the gap image itself, no need to render separately
-                        return null;
-                      } else {
-                        // Get pre-rendered letter image path
-                        const letterImagePath = getLetterImagePath(
-                          item.char, 
-                          letterPosition, 
-                          totalCharCount, 
-                          customization.letterColor
-                        );
-                        letterPosition++; // Increment only for actual letters, not spaces
+                    {/* Letters and spaces container */}
+                    <div className="product-overlapping-content">
+                      {/* Each letter/space in its own div - only show for 2+ non-space characters */}
+                      {customization.word && customization.word.replace(/\s/g, '').length >= 2 && (() => {
+                        const totalCharCount = customization.word.length; // Include spaces in total count
+                        let letterPosition = 0;
                         
-                        if (!letterImagePath) {
-                          // Fallback to text if no image available
+                        return processWordForDisplay(customization.word).map((item, itemIndex) => {
+                          // Check if this space is trailing (no non-space characters after it)
+                          const isTrailingSpace = item.isSpace && 
+                            !customization.word.slice(itemIndex + 1).replace(/\s/g, '').length;
+                          
+                          // Get pre-rendered letter/space image path
+                          const imageImagePath = getLetterImagePath(
+                            item.char, 
+                            letterPosition, 
+                            totalCharCount, 
+                            customization.letterColor,
+                            isTrailingSpace
+                          );
+                          const currentLetterPosition = letterPosition; // Store current position for z-index
+                          letterPosition++; // Increment for all characters including spaces
+                          
+                          if (!imageImagePath) {
+                            return null; // Skip if no image available
+                          }
+                          
+                          // Each letter/space in its own div - matching LWP structure
                           return (
-                            <div
-                              key={`letter-fallback-${itemIndex}`}
-                              style={{
-                                position: 'absolute',
-                                left: '50%',
-                                top: '50%',
-                                transform: 'translate(-50%, -50%)',
-                                color: 'red',
-                                fontSize: '12px',
-                                zIndex: 10
-                              }}
+                            <div 
+                              key={`${item.isSpace ? 'space' : 'letter'}-${itemIndex}`}
+                              className="product-overlapping-letter"
+                              style={{ zIndex: 20 - currentLetterPosition }} // Higher z-index for earlier letters
                             >
-                              {item.char}
+                              <img
+                                src={imageImagePath}
+                                alt={item.isSpace ? ' ' : item.char}
+                                loading="lazy"
+                                width="1500"
+                                height="1500"
+                                className="max-w-full h-full object-contain"
+                                style={{ zIndex: 20 - currentLetterPosition }}
+                              />
                             </div>
                           );
-                        }
-                        
-                        return (
-                          <img
-                            key={`letter-${itemIndex}`}
-                            src={letterImagePath}
-                            alt={`Letter ${item.char}`}
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'contain',
-                              zIndex: 10,
-                              pointerEvents: 'none'
-                            }}
-                            onError={(e) => {
-                              console.log(`Failed to load letter image: ${letterImagePath}`);
-                              // Don't hide the image, just log the error
-                            }}
-                          />
-                        );
-                      }
-                    }).filter(Boolean); // Remove null entries (spaces)
-                  })()}
-
+                        }).filter(Boolean); // Remove null entries
+                      })()}
+                    </div>
+                  </div>
                   {/* Charm positions around the top of the bracelet */}
                   {customization.selectedCharms.slice(0, 6).map((charm, charmIndex) => {
                     const angle = -120 + (charmIndex * 48); // Spread charms across top

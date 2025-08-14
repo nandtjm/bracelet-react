@@ -41,6 +41,8 @@ select {
 /* Bracelet positioning styles */
 .bracelet-container {
   position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .stone {
@@ -67,6 +69,11 @@ select {
   transform: translate(-50%, -50%) scale(1.2);
 }
 
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Charm glow animation */
 @keyframes charmGlow {
   from {
@@ -89,7 +96,81 @@ select {
   transform: translate(-50%, -50%) scale(1.1);
 }
 
+/* Bracelet Preview Container - matching Little Words Project structure */
+.bracelet-preview-container {
+  width: 450px;
+  height: 450px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 0 auto 20px;
+  position: relative;
+}
+
+/* Product Canvas - main container */
+.product-canvas {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Product Overlapping - contains bracelet and letters */
+.product-overlapping {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* Main Bracelet Image */
+.main-bracelet-image {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* Product Overlapping Main Charm - charm overlay */
+._productOverlappingMainCharm_c850n_13 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+}
+
+/* Product Overlapping Content - container for letters */
+.product-overlapping-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+}
+
+/* Product Overlapping Letter - individual letter container */
+.product-overlapping-letter {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Remove flex centering - let the pre-rendered images handle their own positioning */
+}
+
 /* Responsive Design */
+@media (min-width: 429px) {
+  .bracelet-preview-container {
+    width: 590px;
+    height: 590px;
+    max-width: 590px;
+    max-height: 590px;
+  }
+}
+
 @media (max-width: 1024px) {
   .App > div {
     grid-template-columns: 1fr !important;
