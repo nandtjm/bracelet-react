@@ -752,31 +752,32 @@ function App() {
               {!isReviewMode && currentStep === 2 && (
                 <div>
                   {/* Letter Color Section */}
-                  <h3 style={{ marginBottom: '16px' }}>Letter Color</h3>
-                  <div style={{ display: 'flex', gap: '12px', marginBottom: '32px' }}>
+                  <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '500' }}>Letter Color</h3>
+                  <div style={{ display: 'flex', gap: '24px', marginBottom: '32px', alignItems: 'flex-end' }}>
                     {mockData.letterColors.map(color => (
-                      <button
-                        key={color.id}
-                        style={{
-                          padding: '12px',
-                          border: `2px solid ${customization.letterColor === color.id ? '#4F46E5' : '#f3f4f6'}`,
-                          borderRadius: '8px',
-                          background: 'white',
-                          cursor: 'pointer',
-                          textAlign: 'center'
-                        }}
-                        onClick={() => setCustomization({...customization, letterColor: color.id})}
-                      >
-                        <div style={{
-                          width: '20px',
-                          height: '20px',
-                          background: color.hexColor,
-                          borderRadius: '50%',
-                          border: '1px solid #e5e7eb',
-                          margin: '0 auto 4px'
-                        }}></div>
-                        <div style={{ fontSize: '11px' }}>{color.name}</div>
-                      </button>
+                      <div key={color.id} style={{ textAlign: 'center' }}>
+                        <button
+                          style={{
+                            width: '64px',
+                            height: '64px',
+                            border: `3px solid ${customization.letterColor === color.id ? '#4F46E5' : 'transparent'}`,
+                            borderRadius: '50%',
+                            background: color.id === 'gold' 
+                              ? 'linear-gradient(135deg, #FFD700, #FFA500, #FF8C00, #FFD700)' 
+                              : color.hexColor,
+                            cursor: 'pointer',
+                            display: 'block',
+                            marginBottom: '8px',
+                            padding: '0',
+                            boxShadow: customization.letterColor === color.id ? '0 0 0 2px white, 0 0 0 5px #4F46E5' : '0 2px 4px rgba(0,0,0,0.1)'
+                          }}
+                          onClick={() => setCustomization({...customization, letterColor: color.id})}
+                        />
+                        <div style={{ fontSize: '14px', fontWeight: '500' }}>
+                          {color.name}
+                          {color.price > 0 && <span style={{ fontSize: '14px' }}> (+{color.price})</span>}
+                        </div>
+                      </div>
                     ))}
                   </div>
 
@@ -798,7 +799,7 @@ function App() {
                       border: `2px solid ${isValidWord(customization.word) ? '#e5e7eb' : '#ef4444'}`,
                       borderRadius: '8px',
                       fontSize: '16px',
-                      textAlign: 'center',
+                      textAlign: 'left',
                       marginBottom: '8px',
                       boxSizing: 'border-box'
                     }}
