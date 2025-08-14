@@ -114,9 +114,9 @@ function App() {
     const urlPosition = braceletPosition.toString().padStart(2, '0');
     const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // Same logic as letters
     
-    // Generate space stone URL following the pattern
+    // Use local images instead of dynamic Cloudinary URLs
     const braceletTypeName = braceletType.charAt(0).toUpperCase() + braceletType.slice(1); // Capitalize first letter
-    return `https://cld.accentuate.io/6899436781649/1656025881348/${braceletTypeName}-${urlPosition}-${formatCode}.png?v=0&options=w_915,f_auto`;
+    return `/images/bracelets/${braceletType.toLowerCase()}/space/${braceletTypeName}-${urlPosition}-${formatCode}.png`;
   };
 
   const getLetterImagePath = (letter, letterPosition, totalCharCount, letterColor, isTrailingSpace = false) => {
