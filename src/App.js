@@ -24,6 +24,7 @@ function App() {
   const [quantity, setQuantity] = useState(1);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [draggedItem, setDraggedItem] = useState(null);
+  const [hoveredCharm, setHoveredCharm] = useState(null);
   
   // Organize bracelets by category
   const braceletsByCategory = {
@@ -172,8 +173,65 @@ function App() {
 
   // Handle drag and drop functionality
   const handleDragStart = (e, item, itemType) => {
+    console.log('Drag started with item:', item, 'type:', itemType);
     setDraggedItem({ item, itemType });
     e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e, dropzoneIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    console.log('Drop event triggered on dropzone:', dropzoneIndex, 'with draggedItem:', draggedItem);
+    
+    if (draggedItem && draggedItem.itemType === 'charm') {
+      const charm = draggedItem.item;
+      
+      // Check if this dropzone already has a charm
+      const existingCharmInDropzone = customization.selectedCharms.find(c => c.dropzoneIndex === dropzoneIndex);
+      if (existingCharmInDropzone) {
+        console.log('Dropzone already occupied');
+        setDraggedItem(null);
+        return;
+      }
+      
+      // Add charm with dropzone position info
+      const charmWithPosition = {
+        ...charm,
+        dropzoneIndex: dropzoneIndex,
+        positionId: `dropzone-${dropzoneIndex}`
+      };
+      
+      console.log('Adding charm to dropzone:', charmWithPosition);
+      
+      setCustomization({
+        ...customization,
+        selectedCharms: [...customization.selectedCharms, charmWithPosition]
+      });
+    }
+    
+    setDraggedItem(null);
+  };
+
+  const removeCharmFromDropzone = (charmId) => {
+    setCustomization({
+      ...customization,
+      selectedCharms: customization.selectedCharms.filter(c => c.id !== charmId)
+    });
+  };
+
+  // Helper function to generate charm position image path
+  const getCharmPositionImagePath = (charmName, position) => {
+    // Convert charm name to lowercase for folder name
+    const folderName = charmName.toLowerCase();
+    // Position should be 1-9 (left to right)
+    const positionNumber = position + 1;
+    return `/images/charms/${folderName}/${charmName.charAt(0).toUpperCase() + charmName.slice(1).toLowerCase()}_POS_${positionNumber.toString().padStart(2, '0')}.webp`;
   };
 
   return (
@@ -250,6 +308,7 @@ function App() {
           <div style={{ 
             flex: 1, 
             display: 'flex', 
+            flexDirection: 'column',
             alignItems: 'center', 
             justifyContent: 'center' 
           }}>
@@ -281,6 +340,108 @@ function App() {
                         className="max-w-full h-full object-contain"
                       />
                     </div>
+                    
+                    {/* Charm dropzones - only show on step 3 */}
+                    {currentStep === 3 && !isReviewMode && (
+                      <div className="_productOverlappingDropzone_c850n_42" data-customizer-dropzone="true">
+                        {[
+                          { left: '18.5%', top: '70%' },  // Position 1 - leftmost
+                          { left: '8%', top: '53%' },     // Position 2
+                          { left: '10%', top: '33%' },    // Position 3
+                          { left: '23%', top: '14%' },    // Position 4
+                          { left: '46%', top: '7%' },     // Position 5 - top center
+                          { left: '68%', top: '15%' },    // Position 6
+                          { left: '82%', top: '33%' },    // Position 7
+                          { left: '83%', top: '52.5%' },  // Position 8
+                          { left: '73%', top: '69%' }     // Position 9 - rightmost
+                        ].map((position, index) => {
+                          const charmInThisDropzone = customization.selectedCharms.find(c => c.dropzoneIndex === index);
+                          
+                          return (
+                            <div 
+                              key={index}
+                              className={`_dropzone_1xii1_43 ${!charmInThisDropzone ? '_dropzoneFull_1xii1_49' : ''}`}
+                              style={{ 
+                                left: position.left, 
+                                top: position.top,
+                                // Hide dropzone circle when charm is present
+                                background: charmInThisDropzone ? 'transparent' : undefined,
+                                boxShadow: charmInThisDropzone ? 'none' : undefined,
+                                border: charmInThisDropzone ? 'none' : undefined
+                              }}
+                              onDragOver={handleDragOver}
+                              onDrop={(e) => handleDrop(e, index)}
+                            >
+                              <div 
+                                className="_magneticZone_1xii1_5"
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, index)}
+                              ></div>
+                              
+                              {/* Remove button and charm as children when charm is present */}
+                              {charmInThisDropzone && (
+                                <>
+                                  <button 
+                                    type="button" 
+                                    className="_draggableInnerItemRemove_1xii1_36" 
+                                    aria-label="Remove" 
+                                    data-draggable-remove="true" 
+                                    style={{ 
+                                      top: '5px', 
+                                      right: '-23px',
+                                      position: 'absolute',
+                                      background: 'none',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      width: '20px',
+                                      height: '20px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center'
+                                    }}
+                                    onClick={() => removeCharmFromDropzone(charmInThisDropzone.id)}
+                                  >
+                                    <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="1em" width="1em">
+                                      <path d="m289.94 256 95-95A24 24 0 0 0 351 127l-95 95-95-95a24 24 0 0 0-34 34l95 95-95 95a24 24 0 1 0 34 34l95-95 95 95a24 24 0 0 0 34-34z"></path>
+                                    </svg>
+                                  </button>
+                                  
+                                  <div 
+                                    className="_dragBox_fya8s_1 _draggableInnerItem_1xii1_16" 
+                                    draggable="false" 
+                                    data-original-scale="6" 
+                                    data-draggable="false" 
+                                    role="button" 
+                                    tabIndex={0} 
+                                    aria-disabled="false" 
+                                    aria-roledescription="draggable" 
+                                    style={{ 
+                                      '--image-width': '700px', 
+                                      '--image-height': '483px', 
+                                      '--image-scale': '6', 
+                                      '--center-width': '-50px', 
+                                      right: '7%', 
+                                      top: '35%', 
+                                      opacity: 1,
+                                      position: 'absolute'
+                                    }}
+                                  >
+                                    <img 
+                                      src={getCharmPositionImagePath(charmInThisDropzone.name, index)}
+                                      alt={charmInThisDropzone.name} 
+                                      loading="eager" 
+                                      width="100%" 
+                                      height="auto" 
+                                      className="max-w-full h-full object-contain _draggableInnerItemImage_1xii1_23" 
+                                    />
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                     
                     {/* Letters and spaces container */}
                     <div className="product-overlapping-content">
@@ -331,44 +492,6 @@ function App() {
                       })()}
                     </div>
                   </div>
-                  {/* Charm positions around the top of the bracelet */}
-                  {customization.selectedCharms.slice(0, 6).map((charm, charmIndex) => {
-                    const angle = -120 + (charmIndex * 48); // Spread charms across top
-                    const radius = 140;
-                    const x = Math.cos(angle * Math.PI / 180) * radius;
-                    const y = Math.sin(angle * Math.PI / 180) * radius;
-                    
-                    return (
-                      <div
-                        key={`charm-${charmIndex}`}
-                        className="charm-position"
-                        style={{
-                          position: 'absolute',
-                          left: '50%',
-                          top: '50%',
-                          transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '50%',
-                          background: '#FFD700',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '10px',
-                          cursor: 'pointer',
-                          boxShadow: '0 2px 4px rgba(255,215,0,0.3)',
-                          zIndex: 10
-                        }}
-                        onClick={() => {
-                          const newCharms = [...customization.selectedCharms];
-                          newCharms.splice(charmIndex, 1);
-                          setCustomization({...customization, selectedCharms: newCharms});
-                        }}
-                      >
-                        ✨
-                      </div>
-                    );
-                  })}
 
                   {/* Empty dropzones for letter positioning when no word is entered */}
                   {!customization.word && [...Array(13)].map((_, dropIndex) => {
@@ -407,6 +530,18 @@ function App() {
                   })}
                 </div>
               </div>
+              
+              {/* Instruction text - only show on step 3 */}
+              {currentStep === 3 && !isReviewMode && (
+                <div style={{
+                  marginTop: '20px',
+                  fontSize: '14px',
+                  color: '#ef4444',
+                  textAlign: 'center'
+                }}>
+                  Drag & drop your charm to any highlighted spot.
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -763,7 +898,7 @@ function App() {
                             border: `3px solid ${customization.letterColor === color.id ? '#4F46E5' : 'transparent'}`,
                             borderRadius: '50%',
                             background: color.id === 'gold' 
-                              ? 'linear-gradient(135deg, #FFD700, #FFA500, #FF8C00, #FFD700)' 
+                              ? `url('/images/gold-swatch.jpg') center/cover` 
                               : color.hexColor,
                             cursor: 'pointer',
                             display: 'block',
@@ -943,18 +1078,22 @@ function App() {
                       .map(charm => (
                       <div
                         key={charm.id}
-                        draggable={!charm.isSoldOut}
                         style={{
-                          padding: '12px',
-                          border: '1px solid #f3f4f6',
-                          borderRadius: '8px',
-                          background: 'white',
+                          padding: '16px',
+                          border: 'solid',
+                          borderWidth: '1px',
+                          borderRadius: '16px',
+                          backgroundColor: 'rgb(253 251 247 / 1)',
+                          borderColor: hoveredCharm === charm.id ? 'rgb(107 114 128 / 1)' : 'rgb(214 212 204 / 1)',
                           textAlign: 'center',
-                          cursor: charm.isSoldOut ? 'not-allowed' : 'grab',
+                          cursor: charm.isSoldOut ? 'not-allowed' : 'pointer',
                           opacity: charm.isSoldOut ? 0.5 : 1,
-                          position: 'relative'
+                          position: 'relative',
+                          boxShadow: hoveredCharm === charm.id ? '0 4px 16px rgba(0,0,0,0.16)' : '0 2px 8px rgba(0,0,0,0.08)',
+                          transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
                         }}
-                        onDragStart={(e) => handleDragStart(e, charm, 'charm')}
+                        onMouseEnter={() => setHoveredCharm(charm.id)}
+                        onMouseLeave={() => setHoveredCharm(null)}
                         onClick={() => {
                           if (!charm.isSoldOut) {
                             const currentCount = customization.selectedCharms.filter(c => c.id === charm.id).length;
@@ -999,33 +1138,45 @@ function App() {
                         )}
                         <div style={{
                           position: 'absolute',
-                          top: '4px',
-                          right: '4px',
-                          width: '20px',
-                          height: '20px',
-                          border: '2px solid #e5e7eb',
+                          top: '12px',
+                          right: '12px',
+                          width: '28px',
+                          height: '28px',
+                          border: '2px solid #4F46E5',
                           borderRadius: '50%',
                           background: 'white',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '12px',
-                          color: '#4F46E5'
+                          fontSize: '16px',
+                          color: '#4F46E5',
+                          fontWeight: '600',
+                          pointerEvents: 'none',
+                          zIndex: 10
                         }}>
                           +
                         </div>
-                        <div style={{ 
-                          width: '40px', 
-                          height: '40px', 
-                          background: '#e5e7eb', 
-                          borderRadius: '8px', 
-                          margin: '0 auto 8px',
-                          backgroundImage: `url(${charm.image})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center'
-                        }}></div>
-                        <div style={{ fontSize: '10px', marginBottom: '4px' }}>{charm.name}</div>
-                        <div style={{ fontSize: '10px', fontWeight: '600' }}>${charm.price}</div>
+                        <div 
+                          draggable={!charm.isSoldOut}
+                          onDragStart={(e) => {
+                            e.stopPropagation();
+                            handleDragStart(e, charm, 'charm');
+                          }}
+                          style={{ 
+                            width: '80px', 
+                            height: '80px', 
+                            background: '#f8f9fa', 
+                            borderRadius: '12px', 
+                            margin: '0 auto 12px',
+                            backgroundImage: `url(${charm.image})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            cursor: charm.isSoldOut ? 'not-allowed' : 'grab',
+                            position: 'relative'
+                          }}
+                        ></div>
+                        <div style={{ fontSize: '14px', marginBottom: '4px', fontWeight: '500' }}>{charm.name}</div>
+                        <div style={{ fontSize: '14px', fontWeight: '600' }}>${charm.price}</div>
                       </div>
                     ))}
                   </div>
@@ -1143,18 +1294,27 @@ function App() {
             <button
               style={{
                 width: '100%',
-                background: '#4F46E5',
+                background: (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) 
+                  ? '#9ca3af' 
+                  : '#4F46E5',
                 color: 'white',
                 border: 'none',
                 padding: '16px',
                 borderRadius: '8px',
                 fontWeight: '600',
-                cursor: 'pointer'
+                cursor: (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) 
+                  ? 'not-allowed' 
+                  : 'pointer'
               }}
+              disabled={currentStep === 2 && (!customization.word || customization.word.trim().length < 2)}
               onClick={() => {
                 if (isReviewMode) {
                   alert(`Add to Cart $${calculateTotal()}`);
                 } else if (currentStep < 3) {
+                  // Don't advance to step 3 if on step 2 and word is invalid
+                  if (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) {
+                    return;
+                  }
                   setCurrentStep(currentStep + 1);
                 } else {
                   setIsReviewMode(true);

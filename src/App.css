@@ -184,3 +184,48 @@ img {
     gap: 20px !important;
   }
 }
+
+/* Charm Dropzones */
+._productOverlappingDropzone_c850n_42 {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 15;
+  pointer-events: none;
+}
+
+._dropzone_1xii1_43 {
+  position: absolute;
+  height: 2rem;
+  width: 2rem;
+  border-radius: 9999px;
+  background-color: rgb(255 255 255 / var(--tw-bg-opacity));
+  --tw-bg-opacity: .3;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(.4,0,.2,1);
+  transition-duration: .3s;
+  box-shadow: 0 0 10px 4px #da9fc466;
+  -webkit-backdrop-filter: blur(.25px);
+  backdrop-filter: blur(.25px);
+  pointer-events: all;
+}
+
+@media (min-width: 1280px) {
+  ._dropzone_1xii1_43 {
+    height: 3rem;
+    width: 3rem;
+  }
+}
+
+._magneticZone_1xii1_5 {
+  position: absolute;
+  z-index: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 250%;
+  height: 150%;
+  pointer-events: none;
+}
