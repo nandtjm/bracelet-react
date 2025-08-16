@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import mockData from './data/mockData.json';
+import BraceletPreview from './components/BraceletPreview';
+import StepNavigation from './components/StepNavigation';
+import DesignStep from './components/DesignStep';
+import WordStep from './components/WordStep';
+import CharmsStep from './components/CharmsStep';
 
 function App() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -26,6 +31,7 @@ function App() {
   const [draggedItem, setDraggedItem] = useState(null);
   const [hoveredCharm, setHoveredCharm] = useState(null);
   const [charmImageDimensions, setCharmImageDimensions] = useState({});
+  const [isDragInProgress, setIsDragInProgress] = useState(false);
   
   // Organize bracelets by category
   const braceletsByCategory = {
@@ -175,8 +181,12 @@ function App() {
   // Handle drag and drop functionality
   const handleDragStart = (e, item, itemType) => {
     console.log('Drag started with item:', item, 'type:', itemType);
-    setDraggedItem({ item, itemType });
+    const dragData = { item, itemType };
+    console.log('Setting draggedItem to:', dragData);
+    setDraggedItem(dragData);
+    setIsDragInProgress(true);
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
   };
 
   const handleDragOver = (e) => {
@@ -190,8 +200,22 @@ function App() {
     
     console.log('Drop event triggered on dropzone:', dropzoneIndex, 'with draggedItem:', draggedItem);
     
-    if (draggedItem && draggedItem.itemType === 'charm') {
-      const charm = draggedItem.item;
+    // Fallback: try to get data from dataTransfer if draggedItem is null
+    let currentDraggedItem = draggedItem;
+    if (!currentDraggedItem) {
+      try {
+        const transferData = e.dataTransfer.getData('text/plain');
+        if (transferData) {
+          currentDraggedItem = JSON.parse(transferData);
+          console.log('Retrieved draggedItem from dataTransfer:', currentDraggedItem);
+        }
+      } catch (error) {
+        console.log('Failed to parse dataTransfer data:', error);
+      }
+    }
+    
+    if (currentDraggedItem && (currentDraggedItem.itemType === 'charm' || currentDraggedItem.itemType === 'placed-charm')) {
+      const charm = currentDraggedItem.item;
       
       // Check if this dropzone already has a charm
       const existingCharmInDropzone = customization.selectedCharms.find(c => c.dropzoneIndex === dropzoneIndex);
@@ -201,28 +225,50 @@ function App() {
         return;
       }
       
-      // Add charm with dropzone position info
-      const charmWithPosition = {
-        ...charm,
-        dropzoneIndex: dropzoneIndex,
-        positionId: `dropzone-${dropzoneIndex}`
-      };
-      
-      console.log('Adding charm to dropzone:', charmWithPosition);
-      
-      setCustomization({
-        ...customization,
-        selectedCharms: [...customization.selectedCharms, charmWithPosition]
-      });
+      if (currentDraggedItem.itemType === 'placed-charm') {
+        // Moving an existing charm from one dropzone to another
+        const updatedCharms = customization.selectedCharms.map(c => {
+          if (c.id === charm.id && c.dropzoneIndex === charm.currentDropzoneIndex) {
+            return {
+              ...c,
+              dropzoneIndex: dropzoneIndex,
+              positionId: `dropzone-${dropzoneIndex}`
+            };
+          }
+          return c;
+        });
+        
+        console.log('Moving charm to new dropzone:', dropzoneIndex);
+        
+        setCustomization({
+          ...customization,
+          selectedCharms: updatedCharms
+        });
+      } else {
+        // Adding a new charm from the selection grid
+        const charmWithPosition = {
+          ...charm,
+          dropzoneIndex: dropzoneIndex,
+          positionId: `dropzone-${dropzoneIndex}`
+        };
+        
+        console.log('Adding charm to dropzone:', charmWithPosition);
+        
+        setCustomization({
+          ...customization,
+          selectedCharms: [...customization.selectedCharms, charmWithPosition]
+        });
+      }
     }
     
     setDraggedItem(null);
+    setIsDragInProgress(false);
   };
 
-  const removeCharmFromDropzone = (charmId) => {
+  const removeCharmFromDropzone = (charmId, dropzoneIndex) => {
     setCustomization({
       ...customization,
-      selectedCharms: customization.selectedCharms.filter(c => c.id !== charmId)
+      selectedCharms: customization.selectedCharms.filter(c => !(c.id === charmId && c.dropzoneIndex === dropzoneIndex))
     });
   };
 
@@ -297,6 +343,24 @@ function App() {
     return positionStyles[position] || {};
   };
 
+  // Helper function to get manual close button position based on charm position
+  const getCloseButtonPosition = (position) => {
+    // Manual positioning for each charm dropzone (0-indexed)
+    const manualPositions = [
+      { top: '-21px', right: '-12px' },    // Position 0 (charm position 1)
+      { top: '5px', right: '-23px' },      // Position 1 (charm position 2)
+      { bottom: '10px', right: '-25px' },  // Position 2 (charm position 3)
+      { bottom: '-22px', right: '-10px' }, // Position 3 (charm position 4)
+      { bottom: '-28px', left: '8px' },    // Position 4 (charm position 5)
+      { bottom: '-24px' },                 // Position 5 (charm position 6)
+      { top: '20px', left: '-25px' },      // Position 6 (charm position 7)
+      { top: '0px', left: '-24px' },       // Position 7 (charm position 8)
+      { top: '-15px', left: '-15px' }      // Position 8 (charm position 9)
+    ];
+    
+    return manualPositions[position] || { top: '-21px', right: '-12px' };
+  };
+
   // Helper function to get dynamic image dimensions
   // Load image dimensions when charms are added
   useEffect(() => {
@@ -344,298 +408,26 @@ function App() {
           backgroundColor: '#f9fafb',
           padding: '40px'
         }}>
-          {/* Step Progress at top of preview */}
-          <div style={{ marginBottom: '40px' }}>
-            {/* Step circles with connecting lines */}
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '16px' }}>
-              {steps.map((step, index) => (
-                <React.Fragment key={step}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    border: `2px solid ${currentStep >= index + 1 ? '#4F46E5' : '#d1d5db'}`,
-                    background: currentStep >= index + 1 ? '#4F46E5' : 'white',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: currentStep >= index + 1 ? 'white' : '#9ca3af',
-                    fontWeight: '600',
-                    fontSize: '16px'
-                  }}>
-                    {index + 1}
-                  </div>
-                  {index < steps.length - 1 && (
-                    <div style={{
-                      width: '60px',
-                      height: '2px',
-                      background: currentStep > index + 1 ? '#4F46E5' : '#d1d5db',
-                      margin: '0 8px'
-                    }} />
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            
-            {/* Step name tabs */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '4px' }}>
-              {steps.map((step, index) => (
-                <div
-                  key={step}
-                  style={{
-                    padding: '8px 20px',
-                    borderRadius: '20px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    background: currentStep === index + 1 
-                      ? (step === 'Design' ? '#fef3c7' : step === 'Word' ? '#e0e7ff' : '#ddd6fe')
-                      : '#f3f4f6',
-                    color: currentStep === index + 1 ? '#374151' : '#9ca3af'
-                  }}
-                >
-                  {step}
-                </div>
-              ))}
-            </div>
-          </div>
+          <StepNavigation currentStep={currentStep} steps={steps} />
           
-          {/* Bracelet Preview - centered */}
-          <div style={{ 
-            flex: 1, 
-            display: 'flex', 
-            flexDirection: 'column',
-            alignItems: 'center', 
-            justifyContent: 'center' 
-          }}>
-            <div style={{ textAlign: 'center' }}>
-              <div className="bracelet-preview-container">
-                {/* Match Little Words Project structure exactly */}
-                <div className="product-canvas">
-                  <div className="product-overlapping">
-                    {/* Main bracelet image - not background, but actual img element */}
-                    <img
-                      src={getBraceletImage()}
-                      alt="Custom Bracelet"
-                      className="main-bracelet-image"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'contain'
-                      }}
-                    />
-
-                    {/* Main charm overlay */}
-                    <div className="_productOverlappingMainCharm_c850n_13">
-                      <img
-                        src="https://cld.accentuate.io/6899436781649/1655920066230/Charm-gold-yellow.Denoiser-moved.png?v=1724640829437&options=w_900"
-                        alt=""
-                        loading="lazy"
-                        width="900"
-                        height="900"
-                        className="max-w-full h-full object-contain"
-                      />
-                    </div>
-                    
-                    {/* Charm dropzones - only show on step 3 */}
-                    {currentStep === 3 && !isReviewMode && (
-                      <div className="_productOverlappingDropzone_c850n_42" data-customizer-dropzone="true">
-                        {[
-                          { left: '18.5%', top: '70%' },  // Position 1 - leftmost
-                          { left: '8%', top: '53%' },     // Position 2
-                          { left: '10%', top: '33%' },    // Position 3
-                          { left: '23%', top: '14%' },    // Position 4
-                          { left: '46%', top: '7%' },     // Position 5 - top center
-                          { left: '68%', top: '15%' },    // Position 6
-                          { left: '82%', top: '33%' },    // Position 7
-                          { left: '83%', top: '52.5%' },  // Position 8
-                          { left: '73%', top: '69%' }     // Position 9 - rightmost
-                        ].map((position, index) => {
-                          const charmInThisDropzone = customization.selectedCharms.find(c => c.dropzoneIndex === index);
-                          
-                          return (
-                            <div 
-                              key={index}
-                              className={`_dropzone_1xii1_43 ${!charmInThisDropzone ? '_dropzoneFull_1xii1_49' : ''}`}
-                              style={{ 
-                                left: position.left, 
-                                top: position.top,
-                                // Hide dropzone circle when charm is present
-                                background: charmInThisDropzone ? 'transparent' : undefined,
-                                boxShadow: charmInThisDropzone ? 'none' : undefined,
-                                border: charmInThisDropzone ? 'none' : undefined
-                              }}
-                              onDragOver={handleDragOver}
-                              onDrop={(e) => handleDrop(e, index)}
-                            >
-                              <div 
-                                className="_magneticZone_1xii1_5"
-                                onDragOver={handleDragOver}
-                                onDrop={(e) => handleDrop(e, index)}
-                              ></div>
-                              
-                              {/* Remove button and charm as children when charm is present */}
-                              {charmInThisDropzone && (
-                                <>
-                                  <button 
-                                    type="button" 
-                                    className="_draggableInnerItemRemove_1xii1_36" 
-                                    aria-label="Remove" 
-                                    data-draggable-remove="true" 
-                                    style={{ 
-                                      top: '5px', 
-                                      right: '-23px',
-                                      position: 'absolute',
-                                      background: 'none',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      width: '20px',
-                                      height: '20px',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center'
-                                    }}
-                                    onClick={() => removeCharmFromDropzone(charmInThisDropzone.id)}
-                                  >
-                                    <svg stroke="currentColor" fill="currentColor" strokeWidth="0" viewBox="0 0 512 512" height="1em" width="1em">
-                                      <path d="m289.94 256 95-95A24 24 0 0 0 351 127l-95 95-95-95a24 24 0 0 0-34 34l95 95-95 95a24 24 0 1 0 34 34l95-95 95 95a24 24 0 0 0 34-34z"></path>
-                                    </svg>
-                                  </button>
-                                  
-                                  <div 
-                                    className="_dragBox_fya8s_1 _draggableInnerItem_1xii1_16" 
-                                    draggable="false" 
-                                    data-original-scale="6" 
-                                    data-draggable="false" 
-                                    role="button" 
-                                    tabIndex={0} 
-                                    aria-disabled="false" 
-                                    aria-roledescription="draggable" 
-                                    style={{ 
-                                      ...getCharmPositionStyles(index),
-                                      ...(charmImageDimensions[`${charmInThisDropzone.id}-${index}`] || {}),
-                                      position: 'absolute',
-                                      width: '66px',
-                                      height: '77px'
-                                    }}
-                                  >
-                                    <img 
-                                      src={getCharmPositionImagePath(charmInThisDropzone.name, index)}
-                                      alt={charmInThisDropzone.name} 
-                                      loading="eager" 
-                                      width="100%" 
-                                      height="auto" 
-                                      className="max-w-full h-full object-contain _draggableInnerItemImage_1xii1_23" 
-                                    />
-                                  </div>
-                                </>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                    
-                    {/* Letters and spaces container */}
-                    <div className="product-overlapping-content">
-                      {/* Each letter/space in its own div - only show for 2+ non-space characters */}
-                      {customization.word && customization.word.replace(/\s/g, '').length >= 2 && (() => {
-                        const totalCharCount = customization.word.length; // Include spaces in total count
-                        let letterPosition = 0;
-                        
-                        return processWordForDisplay(customization.word).map((item, itemIndex) => {
-                          // Check if this space is trailing (no non-space characters after it)
-                          const isTrailingSpace = item.isSpace && 
-                            !customization.word.slice(itemIndex + 1).replace(/\s/g, '').length;
-                          
-                          // Get pre-rendered letter/space image path
-                          const imageImagePath = getLetterImagePath(
-                            item.char, 
-                            letterPosition, 
-                            totalCharCount, 
-                            customization.letterColor,
-                            isTrailingSpace
-                          );
-                          const currentLetterPosition = letterPosition; // Store current position for z-index
-                          letterPosition++; // Increment for all characters including spaces
-                          
-                          if (!imageImagePath) {
-                            return null; // Skip if no image available
-                          }
-                          
-                          // Each letter/space in its own div - matching LWP structure
-                          return (
-                            <div 
-                              key={`${item.isSpace ? 'space' : 'letter'}-${itemIndex}`}
-                              className="product-overlapping-letter"
-                              style={{ zIndex: 20 - currentLetterPosition }} // Higher z-index for earlier letters
-                            >
-                              <img
-                                src={imageImagePath}
-                                alt={item.isSpace ? ' ' : item.char}
-                                loading="lazy"
-                                width="1500"
-                                height="1500"
-                                className="max-w-full h-full object-contain"
-                                style={{ zIndex: 20 - currentLetterPosition }}
-                              />
-                            </div>
-                          );
-                        }).filter(Boolean); // Remove null entries
-                      })()}
-                    </div>
-                  </div>
-
-                  {/* Empty dropzones for letter positioning when no word is entered */}
-                  {!customization.word && [...Array(13)].map((_, dropIndex) => {
-                    const angleRange = 120;
-                    const startAngle = 210 - (angleRange / 2);
-                    const angleStep = angleRange / 14;
-                    const angle = startAngle + (angleStep * (dropIndex + 1));
-                    
-                    const radius = 165;
-                    const x = Math.cos(angle * Math.PI / 180) * radius;
-                    const y = Math.sin(angle * Math.PI / 180) * radius;
-                    
-                    return (
-                      <div
-                        key={`dropzone-${dropIndex}`}
-                        className="letter-dropzone"
-                        style={{
-                          position: 'absolute',
-                          left: '50%',
-                          top: '50%',
-                          transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`,
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '4px',
-                          border: '1px dashed rgba(255,255,255,0.3)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '10px',
-                          color: 'rgba(255,255,255,0.5)',
-                          zIndex: 5
-                        }}
-                      >
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              {/* Instruction text - only show on step 3 */}
-              {currentStep === 3 && !isReviewMode && (
-                <div style={{
-                  marginTop: '20px',
-                  fontSize: '14px',
-                  color: '#ef4444',
-                  textAlign: 'center'
-                }}>
-                  Drag & drop your charm to any highlighted spot.
-                </div>
-              )}
-            </div>
-          </div>
+          <BraceletPreview
+            customization={customization}
+            currentStep={currentStep}
+            isReviewMode={isReviewMode}
+            getBraceletImage={getBraceletImage}
+            processWordForDisplay={processWordForDisplay}
+            getLetterImagePath={getLetterImagePath}
+            handleDragOver={handleDragOver}
+            handleDrop={handleDrop}
+            removeCharmFromDropzone={removeCharmFromDropzone}
+            getCharmPositionImagePath={getCharmPositionImagePath}
+            getCharmPositionStyles={getCharmPositionStyles}
+            charmImageDimensions={charmImageDimensions}
+            handleDragStart={handleDragStart}
+            getCloseButtonPosition={getCloseButtonPosition}
+            isDragInProgress={isDragInProgress}
+            setIsDragInProgress={setIsDragInProgress}
+          />
         </div>
 
         {/* Options Panel */}
@@ -891,485 +683,44 @@ function App() {
               )}
               
               {!isReviewMode && currentStep === 1 && (
-                <div>
-                  {/* Category Navigation */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <div 
-                      className="category-scroll"
-                      style={{
-                        display: 'flex',
-                        overflowX: 'auto',
-                        gap: '8px',
-                        paddingBottom: '8px'
-                      }}>
-                      {categories.map(category => (
-                        <button
-                          key={category}
-                          style={{
-                            padding: '12px 20px',
-                            border: 'none',
-                            borderRadius: '25px',
-                            background: selectedCategory === category ? '#FFB6C1' : '#f8f9fa',
-                            color: selectedCategory === category ? '#000' : '#6b7280',
-                            fontFamily: 'Larsseit, -apple-system, BlinkMacSystemFont, sans-serif',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                            transition: 'all 0.2s ease'
-                          }}
-                          onClick={() => setSelectedCategory(category)}
-                        >
-                          {category}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Bracelet Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-                    {braceletsByCategory[selectedCategory].map(bracelet => (
-                      <button
-                        key={bracelet.id}
-                        style={{
-                          padding: '16px',
-                          border: `2px solid ${customization.braceletStyle === bracelet.id ? '#4F46E5' : '#f3f4f6'}`,
-                          borderRadius: '8px',
-                          background: 'white',
-                          textAlign: 'center',
-                          cursor: 'pointer',
-                          position: 'relative'
-                        }}
-                        onClick={() => setCustomization({...customization, braceletStyle: bracelet.id})}
-                      >
-                        {bracelet.isBestSeller && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '4px',
-                            left: '4px',
-                            background: '#ef4444',
-                            color: 'white',
-                            fontSize: '8px',
-                            fontWeight: '600',
-                            padding: '2px 6px',
-                            borderRadius: '4px'
-                          }}>
-                            BEST SELLER
-                          </div>
-                        )}
-                        <div style={{ 
-                          width: '60px', 
-                          height: '60px', 
-                          background: '#e5e7eb', 
-                          borderRadius: '50%', 
-                          margin: '0 auto 8px',
-                          backgroundImage: `url(${bracelet.image})`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: 'center'
-                        }}></div>
-                        <div style={{ fontSize: '12px', fontWeight: '500' }}>{bracelet.name}</div>
-                        <div style={{ fontSize: '11px', color: '#6b7280' }}>${bracelet.basePrice}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <DesignStep
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  setSelectedCategory={setSelectedCategory}
+                  braceletsByCategory={braceletsByCategory}
+                  customization={customization}
+                  setCustomization={setCustomization}
+                />
               )}
 
               {!isReviewMode && currentStep === 2 && (
-                <div>
-                  {/* Letter Color Section */}
-                  <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '500' }}>Letter Color</h3>
-                  <div style={{ display: 'flex', gap: '24px', marginBottom: '32px', alignItems: 'flex-end' }}>
-                    {mockData.letterColors.map(color => (
-                      <div key={color.id} style={{ textAlign: 'center' }}>
-                        <button
-                          style={{
-                            width: '64px',
-                            height: '64px',
-                            border: `3px solid ${customization.letterColor === color.id ? '#4F46E5' : 'transparent'}`,
-                            borderRadius: '50%',
-                            background: color.id === 'gold' 
-                              ? `url('/images/gold-swatch.jpg') center/cover` 
-                              : color.hexColor,
-                            cursor: 'pointer',
-                            display: 'block',
-                            marginBottom: '8px',
-                            padding: '0',
-                            boxShadow: customization.letterColor === color.id ? '0 0 0 2px white, 0 0 0 5px #4F46E5' : '0 2px 4px rgba(0,0,0,0.1)'
-                          }}
-                          onClick={() => setCustomization({...customization, letterColor: color.id})}
-                        />
-                        <div style={{ fontSize: '14px', fontWeight: '500' }}>
-                          {color.name}
-                          {color.price > 0 && <span style={{ fontSize: '14px' }}> (+{color.price})</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Enter Your Word Section */}
-                  <h3 style={{ marginBottom: '16px' }}>Enter your word</h3>
-                  <input
-                    type="text"
-                    value={customization.word}
-                    onChange={(e) => {
-                      const value = e.target.value.toUpperCase();
-                      // Allow typing as long as characters are valid and within length limit
-                      if (isValidCharacters(value)) {
-                        setCustomization({...customization, word: value});
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '16px',
-                      border: `2px solid ${isValidWord(customization.word) ? '#e5e7eb' : '#ef4444'}`,
-                      borderRadius: '8px',
-                      fontSize: '16px',
-                      textAlign: 'left',
-                      marginBottom: '8px',
-                      boxSizing: 'border-box'
-                    }}
-                    placeholder="LET THEM"
-                    maxLength="13"
-                  />
-                  <div style={{ 
-                    fontSize: '12px', 
-                    color: '#9ca3af', 
-                    marginBottom: '24px',
-                    lineHeight: '1.4'
-                  }}>
-                    13 characters maximum, minimum 2. Letter, number, :), &lt;3, !, #, &amp;, and : characters only.
-                  </div>
-                  
-                  {/* Trending Words Section */}
-                  <h4 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: '600' }}>Trending Words</h4>
-                  <div 
-                    className="category-scroll"
-                    style={{
-                      display: 'flex',
-                      overflowX: 'auto',
-                      gap: '8px',
-                      paddingBottom: '8px'
-                    }}
-                  >
-                    {trendingWords.map(word => (
-                      <button
-                        key={word}
-                        style={{
-                          padding: '12px 20px',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '25px',
-                          background: 'white',
-                          color: '#374151',
-                          fontSize: '14px',
-                          fontWeight: '500',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          flexShrink: 0,
-                          transition: 'all 0.2s ease'
-                        }}
-                        onClick={() => setCustomization({...customization, word: word})}
-                      >
-                        {word}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <WordStep
+                  mockData={mockData}
+                  customization={customization}
+                  setCustomization={setCustomization}
+                  isValidCharacters={isValidCharacters}
+                  isValidWord={isValidWord}
+                  trendingWords={trendingWords}
+                />
               )}
 
               {!isReviewMode && currentStep === 3 && (
-                <div>
-                  {/* Header */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ margin: 0, marginBottom: '4px' }}>Charms <span style={{ fontWeight: '400', color: '#9ca3af' }}>(Optional Add On)</span></h3>
-                  </div>
-
-                  {/* Search Bar */}
-                  <div style={{ marginBottom: '20px', position: 'relative' }}>
-                    <input
-                      type="text"
-                      placeholder="Search"
-                      value={charmSearchQuery}
-                      onChange={(e) => setCharmSearchQuery(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 16px 12px 40px',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        boxSizing: 'border-box'
-                      }}
-                    />
-                    <div style={{
-                      position: 'absolute',
-                      left: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: '#9ca3af'
-                    }}>🔍</div>
-                    <button style={{
-                      position: 'absolute',
-                      right: '8px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      background: '#FFB6C1',
-                      border: 'none',
-                      borderRadius: '6px',
-                      padding: '6px 12px',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      cursor: 'pointer'
-                    }}>
-                      FILTER & SORT
-                    </button>
-                  </div>
-
-                  {/* Category Navigation */}
-                  <div style={{ marginBottom: '24px' }}>
-                    <div 
-                      className="category-scroll"
-                      style={{
-                        display: 'flex',
-                        overflowX: 'auto',
-                        gap: '8px',
-                        paddingBottom: '8px'
-                      }}
-                    >
-                      {charmCategories.map(category => (
-                        <button
-                          key={category}
-                          style={{
-                            padding: '8px 16px',
-                            border: 'none',
-                            borderRadius: '20px',
-                            background: selectedCharmCategory === category ? '#FFB6C1' : '#f8f9fa',
-                            color: selectedCharmCategory === category ? '#000' : '#6b7280',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            cursor: 'pointer',
-                            whiteSpace: 'nowrap',
-                            flexShrink: 0,
-                            transition: 'all 0.2s ease'
-                          }}
-                          onClick={() => setSelectedCharmCategory(category)}
-                        >
-                          {category}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Charms Grid */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-                    {charmsByCategory[selectedCharmCategory]
-                      .filter(charm => 
-                        charmSearchQuery === '' || 
-                        charm.name.toLowerCase().includes(charmSearchQuery.toLowerCase())
-                      )
-                      .map(charm => (
-                      <div
-                        key={charm.id}
-                        style={{
-                          padding: '16px',
-                          border: 'solid',
-                          borderWidth: '1px',
-                          borderRadius: '16px',
-                          backgroundColor: 'rgb(253 251 247 / 1)',
-                          borderColor: hoveredCharm === charm.id ? 'rgb(107 114 128 / 1)' : 'rgb(214 212 204 / 1)',
-                          textAlign: 'center',
-                          cursor: charm.isSoldOut ? 'not-allowed' : 'pointer',
-                          opacity: charm.isSoldOut ? 0.5 : 1,
-                          position: 'relative',
-                          boxShadow: hoveredCharm === charm.id ? '0 4px 16px rgba(0,0,0,0.16)' : '0 2px 8px rgba(0,0,0,0.08)',
-                          transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
-                        }}
-                        onMouseEnter={() => setHoveredCharm(charm.id)}
-                        onMouseLeave={() => setHoveredCharm(null)}
-                        onClick={() => {
-                          if (!charm.isSoldOut) {
-                            const currentCount = customization.selectedCharms.filter(c => c.id === charm.id).length;
-                            if (currentCount < 9) {
-                              setCustomization({
-                                ...customization,
-                                selectedCharms: [...customization.selectedCharms, charm]
-                              });
-                            }
-                          }
-                        }}
-                      >
-                        {charm.isNew && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '4px',
-                            left: '4px',
-                            background: '#4F46E5',
-                            color: 'white',
-                            fontSize: '8px',
-                            fontWeight: '600',
-                            padding: '2px 6px',
-                            borderRadius: '4px'
-                          }}>
-                            NEW
-                          </div>
-                        )}
-                        {charm.isSoldOut && (
-                          <div style={{
-                            position: 'absolute',
-                            top: '4px',
-                            right: '4px',
-                            background: '#ef4444',
-                            color: 'white',
-                            fontSize: '8px',
-                            fontWeight: '600',
-                            padding: '2px 6px',
-                            borderRadius: '4px'
-                          }}>
-                            SOLD OUT
-                          </div>
-                        )}
-                        <div style={{
-                          position: 'absolute',
-                          top: '12px',
-                          right: '12px',
-                          width: '28px',
-                          height: '28px',
-                          border: '2px solid #4F46E5',
-                          borderRadius: '50%',
-                          background: 'white',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '16px',
-                          color: '#4F46E5',
-                          fontWeight: '600',
-                          pointerEvents: 'none',
-                          zIndex: 10
-                        }}>
-                          +
-                        </div>
-                        <div 
-                          draggable={!charm.isSoldOut}
-                          onDragStart={(e) => {
-                            e.stopPropagation();
-                            handleDragStart(e, charm, 'charm');
-                          }}
-                          style={{ 
-                            width: '80px', 
-                            height: '80px', 
-                            background: '#f8f9fa', 
-                            borderRadius: '12px', 
-                            margin: '0 auto 12px',
-                            backgroundImage: `url(${charm.image})`,
-                            backgroundSize: 'cover',
-                            backgroundPosition: 'center',
-                            cursor: charm.isSoldOut ? 'not-allowed' : 'grab',
-                            position: 'relative'
-                          }}
-                        ></div>
-                        <div style={{ fontSize: '14px', marginBottom: '4px', fontWeight: '500' }}>{charm.name}</div>
-                        <div style={{ fontSize: '14px', fontWeight: '600' }}>${charm.price}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Selected Charms Summary */}
-                  {customization.selectedCharms.length > 0 && (
-                    <div style={{ 
-                      marginTop: '20px', 
-                      padding: '16px', 
-                      background: '#f8f9fa', 
-                      borderRadius: '8px',
-                      border: '1px solid #e5e7eb'
-                    }}>
-                      <div 
-                        style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center',
-                          cursor: 'pointer'
-                        }}
-                        onClick={() => setIsCharmSummaryExpanded(!isCharmSummaryExpanded)}
-                      >
-                        <h4 style={{ margin: 0, fontSize: '14px' }}>Your Charms ({customization.selectedCharms.length})</h4>
-                        <div style={{ 
-                          transform: isCharmSummaryExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s ease',
-                          fontSize: '16px'
-                        }}>
-                          ^
-                        </div>
-                      </div>
-                      
-                      {isCharmSummaryExpanded && (
-                        <div style={{ 
-                          marginTop: '12px',
-                          maxHeight: '200px',
-                          overflowY: 'auto'
-                        }}>
-                          {Object.entries(
-                            customization.selectedCharms.reduce((acc, charm) => {
-                              const key = `${charm.id}-${charm.name}`;
-                              if (acc[key]) {
-                                acc[key].quantity += 1;
-                              } else {
-                                acc[key] = { ...charm, quantity: 1 };
-                              }
-                              return acc;
-                            }, {})
-                          ).map(([key, charmData]) => (
-                            <div key={key} style={{
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              padding: '8px 0',
-                              borderBottom: '1px solid #e5e7eb'
-                            }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <div style={{ 
-                                  width: '20px', 
-                                  height: '20px', 
-                                  background: '#e5e7eb', 
-                                  borderRadius: '4px',
-                                  backgroundImage: `url(${charmData.image})`,
-                                  backgroundSize: 'cover',
-                                  backgroundPosition: 'center'
-                                }}></div>
-                                <div>
-                                  <div style={{ fontSize: '12px', fontWeight: '500' }}>{charmData.name}</div>
-                                  <div style={{ fontSize: '11px', color: '#6b7280' }}>${charmData.price}</div>
-                                </div>
-                              </div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '12px', fontWeight: '500' }}>x{charmData.quantity}</span>
-                                <button
-                                  style={{
-                                    background: '#ef4444',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    padding: '4px 8px',
-                                    fontSize: '10px',
-                                    cursor: 'pointer'
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setCustomization({
-                                      ...customization,
-                                      selectedCharms: customization.selectedCharms.filter(c => c.id !== charmData.id)
-                                    });
-                                  }}
-                                >
-                                  Remove
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
+                <CharmsStep
+                  charmCategories={charmCategories}
+                  selectedCharmCategory={selectedCharmCategory}
+                  setSelectedCharmCategory={setSelectedCharmCategory}
+                  charmSearchQuery={charmSearchQuery}
+                  setCharmSearchQuery={setCharmSearchQuery}
+                  charmsByCategory={charmsByCategory}
+                  customization={customization}
+                  setCustomization={setCustomization}
+                  hoveredCharm={hoveredCharm}
+                  setHoveredCharm={setHoveredCharm}
+                  handleDragStart={handleDragStart}
+                  isCharmSummaryExpanded={isCharmSummaryExpanded}
+                  setIsCharmSummaryExpanded={setIsCharmSummaryExpanded}
+                  setIsDragInProgress={setIsDragInProgress}
+                />
               )}
             </div>
           </div>
