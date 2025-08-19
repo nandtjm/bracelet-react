@@ -6,9 +6,17 @@ import StepNavigation from './components/StepNavigation';
 import DesignStep from './components/DesignStep';
 import WordStep from './components/WordStep';
 import CharmsStep from './components/CharmsStep';
+import useWordPressIntegration from './hooks/useWordPressIntegration';
 
 function App() {
+  // WordPress integration
+  const { isWordPressMode, isModalMode, initialProductId, getImageUrl, addToCart, closeModal, fetchBracelets, fetchCharms, formatPrice, wpData } = useWordPressIntegration();
+  
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState('mockdata');
+  const [bracelets, setBracelets] = useState([]);
+  const [charms, setCharms] = useState([]);
   const [customization, setCustomization] = useState({
     braceletStyle: 'bluestone',
     word: '', // Ensure word starts empty
@@ -19,9 +27,13 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState('Standard');
 
   const steps = ['Design', 'Word', 'Charms'];
-  const categories = mockData.categories.map(cat => cat.name);
-  const trendingWords = mockData.trendingWords;
-  const charmCategories = mockData.charmCategories.map(cat => cat.name);
+  const categories = loading ? [] : ['All', ...new Set(bracelets.map(b => b.category))].map(cat => 
+    cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')
+  );
+  const trendingWords = mockData.trendingWords; // Keep trending words from mock data
+  const charmCategories = loading ? [] : ['All', ...new Set(charms.map(c => c.category))].map(cat => 
+    cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')
+  );
   
   const [selectedCharmCategory, setSelectedCharmCategory] = useState('All');
   const [charmSearchQuery, setCharmSearchQuery] = useState('');
@@ -33,22 +45,103 @@ function App() {
   const [charmImageDimensions, setCharmImageDimensions] = useState({});
   const [isDragInProgress, setIsDragInProgress] = useState(false);
   
+  // Fetch data on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      
+      try {
+        if (isWordPressMode) {
+          // Fetch from WordPress API
+          const [braceletsResponse, charmsResponse] = await Promise.all([
+            fetchBracelets(),
+            fetchCharms()
+          ]);
+          
+          if (braceletsResponse && braceletsResponse.data) {
+            setBracelets(braceletsResponse.data);
+            setDataSource(braceletsResponse.source || 'woocommerce');
+          } else {
+            // Fallback to mock data
+            setBracelets(mockData.bracelets);
+            setDataSource('mockdata_fallback');
+          }
+          
+          if (charmsResponse && charmsResponse.data) {
+            setCharms(charmsResponse.data);
+          } else {
+            // Fallback to mock data
+            setCharms(mockData.charms);
+          }
+        } else {
+          // Standalone mode - use mock data
+          setBracelets(mockData.bracelets);
+          setCharms(mockData.charms);
+          setDataSource('mockdata');
+        }
+      } catch (error) {
+        // console.error('Error loading data:', error);
+        // Fallback to mock data on error
+        setBracelets(mockData.bracelets);
+        setCharms(mockData.charms);
+        setDataSource('mockdata_error');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadData();
+  }, [isWordPressMode]); // Removed fetchBracelets, fetchCharms from deps to prevent infinite loop
+  
+  // Debug bracelet data when loaded
+  useEffect(() => {
+    if (bracelets.length > 0) {
+      console.log(`Bracelets loaded: ${bracelets.length}, source: ${dataSource}`);
+      const selectedBracelet = getSelectedBracelet();
+      if (selectedBracelet) {
+        console.log('Selected bracelet:', selectedBracelet.id);
+        console.log('Space stone images available:', selectedBracelet.spaceStoneImages ? Object.keys(selectedBracelet.spaceStoneImages).length : 0);
+        if (selectedBracelet.spaceStoneImages) {
+          console.log('Space stone keys:', Object.keys(selectedBracelet.spaceStoneImages));
+        }
+      }
+    }
+  }, [bracelets, customization.braceletStyle]);
+  
+  // Auto-select product when data is loaded and we have an initialProductId
+  useEffect(() => {
+    if (!loading && initialProductId && bracelets.length > 0) {
+      // Find the bracelet by WooCommerce ID
+      const targetBracelet = bracelets.find(bracelet => 
+        bracelet.woocommerce_id === initialProductId || 
+        bracelet.id === initialProductId.toString()
+      );
+      
+      if (targetBracelet) {
+        setCustomization(prev => ({
+          ...prev,
+          braceletStyle: targetBracelet.id
+        }));
+      }
+    }
+  }, [loading, initialProductId, bracelets]);
+  
   // Organize bracelets by category
   const braceletsByCategory = {
-    'All': mockData.bracelets,
-    'Standard': mockData.bracelets.filter(b => b.category === 'standard'),
-    'Collabs': mockData.bracelets.filter(b => b.category === 'collabs'),
-    'Limited Edition': mockData.bracelets.filter(b => b.category === 'limited-edition'),
-    'Engraving': mockData.bracelets.filter(b => b.category === 'engraving'),
-    'Tiny Words': mockData.bracelets.filter(b => b.category === 'tiny-words')
+    'All': bracelets,
+    'Standard': bracelets.filter(b => b.category === 'standard'),
+    'Collabs': bracelets.filter(b => b.category === 'collabs'),
+    'Limited Edition': bracelets.filter(b => b.category === 'limited-edition'),
+    'Engraving': bracelets.filter(b => b.category === 'engraving'),
+    'Tiny Words': bracelets.filter(b => b.category === 'tiny-words')
   };
 
   // Organize charms by category
   const charmsByCategory = {
-    'All': mockData.charms,
-    'Bestsellers': mockData.charms.filter(c => c.category === 'bestsellers'),
-    'New Drops & Favs': mockData.charms.filter(c => c.category === 'new-drops'),
-    'Personalize it': mockData.charms.filter(c => c.category === 'personalize-it')
+    'All': charms,
+    'Bestsellers': charms.filter(c => c.category === 'bestsellers'),
+    'New Drops & Favs': charms.filter(c => c.category === 'new-drops' || c.category === 'new-drops-favs'),
+    'Personalize it': charms.filter(c => c.category === 'personalize-it')
   };
 
   // Character validation (for allowed characters and length)
@@ -64,7 +157,7 @@ function App() {
 
   // Get selected bracelet data
   const getSelectedBracelet = () => {
-    return mockData.bracelets.find(b => b.id === customization.braceletStyle) || mockData.bracelets[0];
+    return bracelets.find(b => b.id === customization.braceletStyle) || bracelets[0] || mockData.bracelets[0];
   };
 
   // Get the appropriate bracelet image based on word character count
@@ -72,7 +165,7 @@ function App() {
     const selectedBracelet = getSelectedBracelet();
     
     if (!customization.word || customization.word.length === 0) {
-      return selectedBracelet.image; // No gaps image
+      return getImageUrl(selectedBracelet.image); // No gaps image
     }
     
     // Count all characters including spaces for bracelet variant selection
@@ -81,15 +174,16 @@ function App() {
     // Only show gap images if there are at least 2 non-space characters
     const nonSpaceCharCount = customization.word.replace(/\s/g, '').length;
     if (nonSpaceCharCount < 2) {
-      return selectedBracelet.image;
+      return getImageUrl(selectedBracelet.image);
     }
     
     // Use appropriate gap image based on total character count including spaces (2-13)
     if (totalCharCount >= 2 && totalCharCount <= 13 && selectedBracelet.gapImages) {
-      return selectedBracelet.gapImages[totalCharCount.toString()] || selectedBracelet.image;
+      const gapImage = selectedBracelet.gapImages[totalCharCount.toString()] || selectedBracelet.image;
+      return getImageUrl(gapImage);
     }
     
-    return selectedBracelet.image;
+    return getImageUrl(selectedBracelet.image);
   };
 
   // Get letter image path for pre-rendered positioning (updated for direct key access)
@@ -117,14 +211,35 @@ function App() {
   };
 
   const getSpaceStoneImagePath = (braceletType, braceletPosition, totalCharCount) => {
-    // Space stone pattern: {BraceletType}-{Position}-{O/E}.png
-    // O/E based on total word length (same as letters): O for odd, E for even
-    const urlPosition = braceletPosition.toString().padStart(2, '0');
-    const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // Same logic as letters
+    const selectedBracelet = getSelectedBracelet();
     
-    // Use local images instead of dynamic Cloudinary URLs
-    const braceletTypeName = braceletType.charAt(0).toUpperCase() + braceletType.slice(1); // Capitalize first letter
-    return `/images/bracelets/${braceletType.toLowerCase()}/space/${braceletTypeName}-${urlPosition}-${formatCode}.png`;
+    // Debug logging
+    console.log(`getSpaceStoneImagePath: braceletType=${braceletType}, braceletPosition=${braceletPosition}, totalCharCount=${totalCharCount}`);
+    
+    // Use space stone images from the API if available
+    if (selectedBracelet && selectedBracelet.spaceStoneImages) {
+      const urlPosition = braceletPosition.toString().padStart(2, '0');
+      const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // O for odd word length, E for even word length
+      const stoneKey = `${urlPosition}_${formatCode}`;
+      
+      console.log(`Space stone lookup: key=${stoneKey}, found=${!!selectedBracelet.spaceStoneImages[stoneKey]}`);
+      console.log('Available space stone keys:', Object.keys(selectedBracelet.spaceStoneImages));
+      if (selectedBracelet.spaceStoneImages[stoneKey]) {
+        console.log(`Using WordPress space stone: ${selectedBracelet.spaceStoneImages[stoneKey]}`);
+        return selectedBracelet.spaceStoneImages[stoneKey];
+      } else {
+        console.log(`Space stone not found for key ${stoneKey}, falling back to constructed path`);
+      }
+    } else {
+      console.log('No spaceStoneImages data available from WordPress API');
+    }
+    
+    // Fallback to constructed path if no API data available
+    const urlPosition = braceletPosition.toString().padStart(2, '0');
+    const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // O for odd word length, E for even word length
+    const braceletTypeName = braceletType.charAt(0).toUpperCase() + braceletType.slice(1);
+    const imagePath = `images/bracelets/${braceletType.toLowerCase()}/space/${braceletTypeName}-${urlPosition}-${formatCode}.png`;
+    return getImageUrl(imagePath);
   };
 
   const getLetterImagePath = (letter, letterPosition, totalCharCount, letterColor, isTrailingSpace = false) => {
@@ -152,7 +267,7 @@ function App() {
     const colorCode = colorMap[letterColor] || 'WL'; // Default to white if color not found
     
     // Use O format for odd word lengths, E format for even word lengths
-    const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // O for odd, E for even
+    const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // O for odd word length, E for even word length
     return `https://res.cloudinary.com/drvnwq9bm/image/upload/w_915,f_auto/customizer-v2/colors/${colorCode}/${letter.toUpperCase()}/${colorCode}-${letter.toUpperCase()}-${formatCode}-${urlPosition}.png`;
   };
 
@@ -168,11 +283,20 @@ function App() {
     }));
   };
 
+  // Get letter colors from WordPress data or fallback to mock data
+  const getLetterColors = () => {
+    if (isWordPressMode && wpData?.letterColors) {
+      return wpData.letterColors;
+    }
+    return mockData.letterColors;
+  };
+
   // Calculate total price
   const calculateTotal = () => {
     const selectedBracelet = getSelectedBracelet();
     let total = selectedBracelet.basePrice;
-    const selectedLetterColor = mockData.letterColors.find(c => c.id === customization.letterColor);
+    const letterColors = getLetterColors();
+    const selectedLetterColor = letterColors.find(c => c.id === customization.letterColor);
     if (selectedLetterColor) total += selectedLetterColor.price;
     const charmsTotal = customization.selectedCharms.reduce((sum, charm) => sum + charm.price, 0);
     return (total + charmsTotal) * quantity;
@@ -180,9 +304,9 @@ function App() {
 
   // Handle drag and drop functionality
   const handleDragStart = (e, item, itemType) => {
-    console.log('Drag started with item:', item, 'type:', itemType);
+    // console.log('Drag started with item:', item, 'type:', itemType);
     const dragData = { item, itemType };
-    console.log('Setting draggedItem to:', dragData);
+    // console.log('Setting draggedItem to:', dragData);
     setDraggedItem(dragData);
     setIsDragInProgress(true);
     e.dataTransfer.effectAllowed = 'move';
@@ -198,7 +322,7 @@ function App() {
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('Drop event triggered on dropzone:', dropzoneIndex, 'with draggedItem:', draggedItem);
+    // console.log('Drop event triggered on dropzone:', dropzoneIndex, 'with draggedItem:', draggedItem);
     
     // Fallback: try to get data from dataTransfer if draggedItem is null
     let currentDraggedItem = draggedItem;
@@ -207,10 +331,10 @@ function App() {
         const transferData = e.dataTransfer.getData('text/plain');
         if (transferData) {
           currentDraggedItem = JSON.parse(transferData);
-          console.log('Retrieved draggedItem from dataTransfer:', currentDraggedItem);
+          // console.log('Retrieved draggedItem from dataTransfer:', currentDraggedItem);
         }
       } catch (error) {
-        console.log('Failed to parse dataTransfer data:', error);
+        // console.log('Failed to parse dataTransfer data:', error);
       }
     }
     
@@ -220,7 +344,7 @@ function App() {
       // Check if this dropzone already has a charm
       const existingCharmInDropzone = customization.selectedCharms.find(c => c.dropzoneIndex === dropzoneIndex);
       if (existingCharmInDropzone) {
-        console.log('Dropzone already occupied');
+        // console.log('Dropzone already occupied');
         setDraggedItem(null);
         return;
       }
@@ -238,7 +362,7 @@ function App() {
           return c;
         });
         
-        console.log('Moving charm to new dropzone:', dropzoneIndex);
+        // console.log('Moving charm to new dropzone:', dropzoneIndex);
         
         setCustomization({
           ...customization,
@@ -252,7 +376,7 @@ function App() {
           positionId: `dropzone-${dropzoneIndex}`
         };
         
-        console.log('Adding charm to dropzone:', charmWithPosition);
+        // console.log('Adding charm to dropzone:', charmWithPosition);
         
         setCustomization({
           ...customization,
@@ -274,11 +398,18 @@ function App() {
 
   // Helper function to generate charm position image path
   const getCharmPositionImagePath = (charmName, position) => {
-    // Convert charm name to lowercase for folder name
+    // Find the charm in our data to get position images
+    const charm = charms.find(c => c.name === charmName || c.id === charmName);
+    if (charm && charm.positionImages && charm.positionImages[position + 1]) {
+      // Use position image from WooCommerce if available
+      return charm.positionImages[position + 1];
+    }
+    
+    // Fallback to constructed path for backward compatibility
     const folderName = charmName.toLowerCase();
-    // Position should be 1-9 (left to right)
     const positionNumber = position + 1;
-    return `/images/charms/${folderName}/${charmName.charAt(0).toUpperCase() + charmName.slice(1).toLowerCase()}_POS_${positionNumber.toString().padStart(2, '0')}.webp`;
+    const imagePath = `images/charms/${folderName}/${charmName.charAt(0).toUpperCase() + charmName.slice(1).toLowerCase()}_POS_${positionNumber.toString().padStart(2, '0')}.webp`;
+    return getImageUrl(imagePath);
   };
 
   // Helper function to get position-specific charm styles (only position values)
@@ -364,42 +495,114 @@ function App() {
   // Helper function to get dynamic image dimensions
   // Load image dimensions when charms are added
   useEffect(() => {
+    // Prevent infinite loops by checking if charms data is loaded
+    if (charms.length === 0) return;
+    
     customization.selectedCharms.forEach(charm => {
       if (charm.dropzoneIndex !== undefined) {
-        const imagePath = getCharmPositionImagePath(charm.name, charm.dropzoneIndex);
         const charmKey = `${charm.id}-${charm.dropzoneIndex}`;
         
+        // Only load if not already loaded and not currently loading
         if (!charmImageDimensions[charmKey]) {
-          const img = new Image();
-          img.onload = () => {
-            const width = img.naturalWidth;
-            const height = img.naturalHeight;
-            const scale = 6;
-            const centerWidth = -(width / scale / 2);
-            
-            setCharmImageDimensions(prev => ({
-              ...prev,
-              [charmKey]: {
-                '--image-width': `${width}px`,
-                '--image-height': `${height}px`,
-                '--image-scale': scale.toString(),
-                '--center-width': `${centerWidth}px`
-              }
-            }));
-          };
-          img.src = imagePath;
+          const imagePath = getCharmPositionImagePath(charm.name, charm.dropzoneIndex);
+          
+          // Prevent duplicate loading
+          if (imagePath) {
+            const img = new Image();
+            img.onload = () => {
+              const width = img.naturalWidth;
+              const height = img.naturalHeight;
+              const scale = 6;
+              const centerWidth = -(width / scale / 2);
+              
+              setCharmImageDimensions(prev => {
+                // Double-check to prevent race conditions
+                if (prev[charmKey]) return prev;
+                
+                return {
+                  ...prev,
+                  [charmKey]: {
+                    '--image-width': `${width}px`,
+                    '--image-height': `${height}px`,
+                    '--image-scale': scale.toString(),
+                    '--center-width': `${centerWidth}px`
+                  }
+                };
+              });
+            };
+            img.onerror = () => {
+              // Mark as failed to prevent retry loops
+              setCharmImageDimensions(prev => ({
+                ...prev,
+                [charmKey]: null
+              }));
+            };
+            img.src = imagePath;
+          }
         }
       }
     });
-  }, [customization.selectedCharms]);
+  }, [customization.selectedCharms]); // Removed charms dependency to prevent infinite loop
+
+  if (loading) {
+    return (
+      <div className="App" style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        backgroundColor: '#f9fafb'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ 
+            fontSize: '18px', 
+            fontWeight: '600', 
+            marginBottom: '12px',
+            color: '#374151'
+          }}>
+            Loading Bracelet Customizer...
+          </div>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid #e5e7eb',
+            borderTop: '4px solid #4F46E5',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto'
+          }}></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="App">
+      {/* Data source indicator (development only) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: dataSource === 'woocommerce' ? '#10b981' : '#f59e0b',
+          color: 'white',
+          padding: '4px 8px',
+          fontSize: '12px',
+          borderRadius: '4px',
+          zIndex: 9999
+        }}>
+          Data: {dataSource}
+        </div>
+      )}
+      
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: '65% 35%', 
         gap: '0',
-        minHeight: '100vh'
+        height: '100vh',
+        minHeight: '100vh',
+        maxHeight: '100vh',
+        overflow: 'hidden'
       }}>
         {/* Preview Panel */}
         <div style={{ 
@@ -427,6 +630,8 @@ function App() {
             getCloseButtonPosition={getCloseButtonPosition}
             isDragInProgress={isDragInProgress}
             setIsDragInProgress={setIsDragInProgress}
+            selectedBracelet={getSelectedBracelet()}
+            getImageUrl={getImageUrl}
           />
         </div>
 
@@ -434,6 +639,8 @@ function App() {
         <div style={{
           backgroundColor: 'white',
           height: '100vh',
+          minHeight: '100vh',
+          maxHeight: '100vh',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column'
@@ -447,7 +654,7 @@ function App() {
             borderBottom: '1px solid #f0f0f0'
           }}>
             <div style={{ width: '80px' }}>
-              {currentStep > 1 && (
+              {(currentStep > 1 || isReviewMode) && (
                 <button 
                   style={{ 
                     background: 'none', 
@@ -457,9 +664,16 @@ function App() {
                     color: '#6b7280',
                     fontWeight: '500'
                   }}
-                  onClick={() => setCurrentStep(currentStep - 1)}
+                  onClick={() => {
+                    if (isReviewMode) {
+                      setIsReviewMode(false);
+                      setCurrentStep(3); // Go back to Charms step
+                    } else {
+                      setCurrentStep(currentStep - 1);
+                    }
+                  }}
                 >
-                  ← {steps[currentStep - 2]}
+                  ← {isReviewMode ? 'Charms' : steps[currentStep - 2]}
                 </button>
               )}
             </div>
@@ -467,11 +681,30 @@ function App() {
               <div>little words</div>
               <div>project</div>
             </div>
-            <button style={{ background: 'none', border: 'none', fontSize: '24px' }}>×</button>
+            <button 
+              style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
+              onClick={() => {
+                if (isWordPressMode) {
+                  closeModal();
+                } else {
+                  // Standalone mode - could close or hide the app
+                  // console.log('Close button clicked in standalone mode');
+                }
+              }}
+            >
+              ×
+            </button>
           </div>
 
           {/* Content Area */}
-          <div style={{ padding: '24px', flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+          <div style={{ 
+            padding: '24px', 
+            flex: 1, 
+            display: 'flex', 
+            flexDirection: 'column', 
+            overflowY: 'auto',
+            minHeight: 0  // Important for flex child to be scrollable
+          }}>
             {/* Step Content */}
             <div style={{ flex: 1 }}>
               {isReviewMode && (
@@ -519,24 +752,25 @@ function App() {
                         Edit
                       </button>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                       <div style={{ 
-                        width: '40px', 
-                        height: '40px', 
+                        width: '80px', 
+                        height: '80px', 
                         background: '#e5e7eb', 
                         borderRadius: '50%',
-                        backgroundImage: `url(${getSelectedBracelet().image})`,
+                        backgroundImage: `url(${getImageUrl(getSelectedBracelet().image)})`,
                         backgroundSize: 'cover',
-                        backgroundPosition: 'center'
+                        backgroundPosition: 'center',
+                        flexShrink: 0
                       }}></div>
                       <div>
-                        <div style={{ fontSize: '14px', fontWeight: '500' }}>{getSelectedBracelet().name}</div>
-                        <div style={{ fontSize: '12px', color: '#6b7280' }}>Your Size: {customization.size.toUpperCase()}</div>
+                        <div style={{ fontSize: '16px', fontWeight: '600', marginBottom: '4px' }}>{getSelectedBracelet().name}</div>
+                        <div style={{ fontSize: '14px', color: '#6b7280' }}>Your Size: {customization.size.toUpperCase()}</div>
                       </div>
                     </div>
                     <div style={{ marginTop: '12px' }}>
                       <span style={{ fontSize: '14px', fontWeight: '500', marginRight: '8px' }}>Size:</span>
-                      {['XS', 'S/M', 'M/L', 'L/XL'].map(size => (
+                      {(getSelectedBracelet().availableSizes || ['XS', 'S/M', 'M/L', 'L/XL']).map(size => (
                         <button
                           key={size}
                           style={{
@@ -574,27 +808,72 @@ function App() {
                     </div>
                     <div style={{ fontSize: '14px', marginBottom: '8px' }}>
                       <strong>Letter Color:</strong> {customization.letterColor.charAt(0).toUpperCase() + customization.letterColor.slice(1)}
-                      {customization.letterColor === 'gold' && ' (+$15)'}
+                      {(() => {
+                        const letterColors = getLetterColors();
+                        const selectedLetterColor = letterColors.find(c => c.id === customization.letterColor);
+                        return selectedLetterColor && selectedLetterColor.price > 0 ? ` (+${formatPrice(selectedLetterColor.price)})` : '';
+                      })()}
                     </div>
                     <div style={{ fontSize: '14px', marginBottom: '12px' }}>
                       <strong>Word:</strong> {customization.word}
                     </div>
                     <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-                      {customization.word.split('').map((letter, index) => (
-                        <div key={index} style={{
-                          width: '24px',
-                          height: '24px',
-                          background: '#e5e7eb',
-                          borderRadius: '2px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '12px',
-                          fontWeight: '600'
-                        }}>
-                          {letter}
-                        </div>
-                      ))}
+                      {customization.word.split('').map((letter, index) => {
+                        // Map letter color to URL code
+                        const colorMap = {
+                          'white': 'WL',
+                          'pink': 'PK', 
+                          'black': 'BL',
+                          'gold': 'GL'
+                        };
+                        
+                        const colorCode = colorMap[customization.letterColor] || 'WL';
+                        
+                        // Handle spaces - show empty space
+                        if (letter === ' ') {
+                          return (
+                            <div key={index} style={{
+                              width: '24px',
+                              height: '24px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              {/* Empty space for actual space character */}
+                            </div>
+                          );
+                        }
+                        
+                        // Generate static letter block URL
+                        const letterImageUrl = `https://res.cloudinary.com/drvnwq9bm/image/upload/f_auto,q_auto,w_90/customizer-v2/types/statics/${colorCode}/${letter.toUpperCase()}.png`;
+                        
+                        return (
+                          <div key={index} style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden'
+                          }}>
+                            <img 
+                              src={letterImageUrl}
+                              alt={letter}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain'
+                              }}
+                              onError={(e) => {
+                                // Fallback to text if image fails to load
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = `<div style="width: 24px; height: 24px; background: #e5e7eb; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">${letter}</div>`;
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -615,18 +894,8 @@ function App() {
                       </button>
                     </div>
                     {customization.selectedCharms.length > 0 ? (
-                      Object.entries(
-                        customization.selectedCharms.reduce((acc, charm) => {
-                          const key = `${charm.id}-${charm.name}`;
-                          if (acc[key]) {
-                            acc[key].quantity += 1;
-                          } else {
-                            acc[key] = { ...charm, quantity: 1 };
-                          }
-                          return acc;
-                        }, {})
-                      ).map(([key, charmData]) => (
-                        <div key={key} style={{
+                      customization.selectedCharms.map((charm, index) => (
+                        <div key={`review-charm-${charm.id}-${charm.dropzoneIndex}-${index}`} style={{
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
@@ -639,14 +908,14 @@ function App() {
                               height: '32px', 
                               background: '#e5e7eb', 
                               borderRadius: '8px',
-                              backgroundImage: `url(${charmData.image})`,
+                              backgroundImage: `url(${getImageUrl(charm.image)})`,
                               backgroundSize: 'cover',
                               backgroundPosition: 'center'
                             }}></div>
-                            <div style={{ fontSize: '14px', fontWeight: '500' }}>{charmData.name}</div>
+                            <div style={{ fontSize: '14px', fontWeight: '500' }}>{charm.name}</div>
                           </div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ fontSize: '14px' }}>${charmData.price}</span>
+                            <span style={{ fontSize: '14px' }}>{formatPrice(charm.price)}</span>
                             <button 
                               style={{
                                 background: 'none',
@@ -657,9 +926,10 @@ function App() {
                                 textDecoration: 'underline'
                               }}
                               onClick={() => {
+                                const updatedCharms = customization.selectedCharms.filter((c, i) => i !== index);
                                 setCustomization({
                                   ...customization,
-                                  selectedCharms: customization.selectedCharms.filter(c => c.id !== charmData.id)
+                                  selectedCharms: updatedCharms
                                 });
                               }}
                             >
@@ -701,6 +971,9 @@ function App() {
                   isValidCharacters={isValidCharacters}
                   isValidWord={isValidWord}
                   trendingWords={trendingWords}
+                  getImageUrl={getImageUrl}
+                  letterColors={getLetterColors()}
+                  formatPrice={formatPrice}
                 />
               )}
 
@@ -734,41 +1007,228 @@ function App() {
             backgroundColor: 'white',
             marginTop: 'auto'
           }}>
-            <button
-              style={{
-                width: '100%',
-                background: (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) 
-                  ? '#9ca3af' 
-                  : '#4F46E5',
-                color: 'white',
-                border: 'none',
-                padding: '16px',
-                borderRadius: '8px',
-                fontWeight: '600',
-                cursor: (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) 
-                  ? 'not-allowed' 
-                  : 'pointer'
-              }}
-              disabled={currentStep === 2 && (!customization.word || customization.word.trim().length < 2)}
-              onClick={() => {
-                if (isReviewMode) {
-                  alert(`Add to Cart $${calculateTotal()}`);
-                } else if (currentStep < 3) {
-                  // Don't advance to step 3 if on step 2 and word is invalid
-                  if (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) {
-                    return;
+            {currentStep === 3 && !isReviewMode ? (
+              // Step 3: Split layout with Your Charms on left, REVIEW button on right
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
+                {/* Your Charms Section */}
+                <div style={{ 
+                  flex: 1,
+                  background: '#f8f9fa',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  border: '1px solid #e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setIsCharmSummaryExpanded(!isCharmSummaryExpanded)}>
+                  <span style={{ 
+                    fontSize: '16px', 
+                    fontWeight: '600',
+                    color: '#111827'
+                  }}>
+                    Your Charms ({customization.selectedCharms.length})
+                  </span>
+                  <div style={{ 
+                    transform: isCharmSummaryExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s ease',
+                    color: '#6b7280',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="6,9 12,15 18,9"></polyline>
+                    </svg>
+                  </div>
+                </div>
+                
+                {/* REVIEW Button */}
+                <button
+                  style={{
+                    background: '#4F46E5',
+                    color: 'white',
+                    border: 'none',
+                    padding: '16px 32px',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    minWidth: '120px'
+                  }}
+                  onClick={() => setIsReviewMode(true)}
+                >
+                  REVIEW
+                </button>
+              </div>
+            ) : (
+              // Other steps: Full width button
+              <button
+                style={{
+                  width: '100%',
+                  background: (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) 
+                    ? '#9ca3af' 
+                    : '#4F46E5',
+                  color: 'white',
+                  border: 'none',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  cursor: (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) 
+                    ? 'not-allowed' 
+                    : 'pointer'
+                }}
+                disabled={currentStep === 2 && (!customization.word || customization.word.trim().length < 2)}
+                onClick={async () => {
+                  if (isReviewMode) {
+                    if (isWordPressMode) {
+                      // WordPress mode - add to WooCommerce cart
+                      const selectedBracelet = getSelectedBracelet();
+                      const productData = {
+                        product_id: selectedBracelet.woocommerce_id || selectedBracelet.id,
+                        quantity: quantity,
+                        variation_data: {
+                          bracelet_style: customization.braceletStyle,
+                          letter_color: customization.letterColor,
+                          size: customization.size
+                        }
+                      };
+                      
+                      const customizationData = {
+                        bracelet_style: customization.braceletStyle,
+                        word: customization.word,
+                        letter_color: customization.letterColor,
+                        selected_charms: customization.selectedCharms,
+                        size: customization.size,
+                        quantity: quantity,
+                        total_price: calculateTotal()
+                      };
+                      
+                      const result = await addToCart(productData, customizationData);
+                      if (result) {
+                        // Success - could show notification or redirect
+                        // console.log('Added to cart successfully', result);
+                        closeModal(); // Close the customizer
+                      } else {
+                        alert('Error adding to cart. Please try again.');
+                      }
+                    } else {
+                      // Standalone mode - show alert
+                      alert(`Add to Cart ${formatPrice(calculateTotal())}`);
+                    }
+                  } else if (currentStep < 3) {
+                    // Don't advance to step 3 if on step 2 and word is invalid
+                    if (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) {
+                      return;
+                    }
+                    setCurrentStep(currentStep + 1);
+                  } else {
+                    setIsReviewMode(true);
                   }
-                  setCurrentStep(currentStep + 1);
-                } else {
-                  setIsReviewMode(true);
-                }
-              }}
-            >
-              {isReviewMode ? `ADD TO CART $${calculateTotal()}` : (currentStep < 3 ? 'NEXT' : 'REVIEW')}
-            </button>
+                }}
+              >
+                {isReviewMode ? `ADD TO CART ${formatPrice(calculateTotal())}` : (currentStep < 3 ? 'NEXT' : 'REVIEW')}
+              </button>
+            )}
           </div>
         </div>
       </div>
+      
+      {/* Expandable Charms Summary Overlay */}
+      {currentStep === 3 && !isReviewMode && isCharmSummaryExpanded && customization.selectedCharms.length > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '100px',
+          right: '24px',
+          left: '65%',
+          background: 'white',
+          border: '1px solid #e5e7eb',
+          borderRadius: '8px',
+          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+          zIndex: 1000,
+          maxHeight: '300px',
+          overflowY: 'auto'
+        }}>
+          <div style={{ 
+            padding: '16px',
+            borderBottom: '1px solid #f3f4f6',
+            background: '#f8f9fa',
+            borderRadius: '8px 8px 0 0'
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center'
+            }}>
+              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>
+                Your Charms ({customization.selectedCharms.length})
+              </h4>
+              <button
+                onClick={() => setIsCharmSummaryExpanded(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '18px',
+                  cursor: 'pointer',
+                  color: '#6b7280'
+                }}
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          
+          <div style={{ padding: '16px' }}>
+            {customization.selectedCharms.map((charm, index) => (
+              <div key={`${charm.id}-${charm.dropzoneIndex}-${index}`} style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 0',
+                borderBottom: '1px solid #f3f4f6'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ 
+                    width: '32px', 
+                    height: '32px', 
+                    background: '#e5e7eb', 
+                    borderRadius: '6px',
+                    backgroundImage: `url(${getImageUrl(charm.image)})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}></div>
+                  <div>
+                    <div style={{ fontSize: '14px', fontWeight: '500' }}>{charm.name}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280' }}>{formatPrice(charm.price)}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <button
+                    style={{
+                      background: '#ef4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      padding: '6px 12px',
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      const updatedCharms = customization.selectedCharms.filter((c, i) => i !== index);
+                      setCustomization({
+                        ...customization,
+                        selectedCharms: updatedCharms
+                      });
+                    }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

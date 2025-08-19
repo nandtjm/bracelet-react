@@ -6,13 +6,16 @@ const WordStep = ({
   setCustomization,
   isValidCharacters,
   isValidWord,
-  trendingWords
+  trendingWords,
+  getImageUrl,
+  letterColors,
+  formatPrice
 }) => {
   return (
     <div>
       <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '500' }}>Letter Color</h3>
       <div style={{ display: 'flex', gap: '24px', marginBottom: '32px', alignItems: 'flex-end' }}>
-        {mockData.letterColors.map(color => (
+        {letterColors.map(color => (
           <div key={color.id} style={{ textAlign: 'center' }}>
             <button
               style={{
@@ -21,7 +24,7 @@ const WordStep = ({
                 border: `3px solid ${customization.letterColor === color.id ? '#4F46E5' : 'transparent'}`,
                 borderRadius: '50%',
                 background: color.id === 'gold' 
-                  ? `url('/images/gold-swatch.jpg') center/cover` 
+                  ? `url('${getImageUrl('gold-swatch.jpg')}') center/cover` 
                   : color.hexColor,
                 cursor: 'pointer',
                 display: 'block',
@@ -33,7 +36,7 @@ const WordStep = ({
             />
             <div style={{ fontSize: '14px', fontWeight: '500' }}>
               {color.name}
-              {color.price > 0 && <span style={{ fontSize: '14px' }}> (+{color.price})</span>}
+              {color.price > 0 && <span style={{ fontSize: '14px' }}> (+{formatPrice(color.price)})</span>}
             </div>
           </div>
         ))}

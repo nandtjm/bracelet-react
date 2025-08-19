@@ -1,0 +1,285 @@
+import { useState, useEffect } from 'react';
+
+/**
+ * WordPress Integration Hook
+ * 
+ * This hook manages the integration between the React app and WordPress,
+ * including data fetching from WordPress REST API, WooCommerce integration,
+ * and WordPress-specific functionality.
+ */
+export const useWordPressIntegration = () => {
+  const [wpData, setWpData] = useState(null);
+  const [isWordPressMode, setIsWordPressMode] = useState(false);
+  const [isModalMode, setIsModalMode] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [initialProductId, setInitialProductId] = useState(null);
+
+  // Check if we're running in WordPress environment
+  useEffect(() => {
+    const wpMode = typeof window !== 'undefined' && 
+                   window.braceletCustomizerData && 
+                   window.braceletCustomizerData.restUrl;
+    
+    // Check if we're in modal mode (has modal container)
+    const modalMode = wpMode && document.getElementById('bracelet-customizer-modal');
+    
+    // Get product_id from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('product_id');
+    if (productId) {
+      setInitialProductId(parseInt(productId));
+    }
+    
+    setIsWordPressMode(wpMode);
+    setIsModalMode(modalMode);
+    
+    if (wpMode) {
+      setWpData(window.braceletCustomizerData);
+    }
+    
+    setLoading(false);
+  }, []);
+
+  /**
+   * Fetch bracelets from WordPress API
+   */
+  const fetchBracelets = async () => {
+    if (!isWordPressMode || !wpData) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${wpData.restUrl}bracelets`, {
+        headers: {
+          'X-WP-Nonce': wpData.restNonce
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch bracelets');
+      }
+      
+      return await response.json();
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
+  };
+
+  /**
+   * Fetch charms from WordPress API
+   */
+  const fetchCharms = async () => {
+    if (!isWordPressMode || !wpData) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${wpData.restUrl}charms`, {
+        headers: {
+          'X-WP-Nonce': wpData.restNonce
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch charms');
+      }
+      
+      return await response.json();
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
+  };
+
+  /**
+   * Save customization to WordPress
+   */
+  const saveCustomization = async (customizationData) => {
+    if (!isWordPressMode || !wpData) {
+      return null;
+    }
+
+    try {
+      const response = await fetch(`${wpData.restUrl}customization`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-WP-Nonce': wpData.restNonce
+        },
+        body: JSON.stringify(customizationData)
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save customization');
+      }
+      
+      return await response.json();
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
+  };
+
+  /**
+   * Add to WooCommerce cart
+   */
+  const addToCart = async (productData, customizationData) => {
+    if (!isWordPressMode || !wpData) {
+      return null;
+    }
+
+    try {
+      // First save the customization
+      const savedCustomization = await saveCustomization(customizationData);
+      
+      if (!savedCustomization) {
+        throw new Error('Failed to save customization before adding to cart');
+      }
+
+      // Then add to cart via AJAX
+      const formData = new FormData();
+      formData.append('action', 'bracelet_add_to_cart');
+      formData.append('nonce', wpData.nonce);
+      formData.append('product_data', JSON.stringify(productData));
+      formData.append('customization_id', savedCustomization.id);
+
+      const response = await fetch(wpData.ajaxUrl, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to add to cart');
+      }
+      
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.data?.message || 'Failed to add to cart');
+      }
+      
+      return result.data;
+    } catch (err) {
+      setError(err.message);
+      return null;
+    }
+  };
+
+  /**
+   * Get image URL with WordPress plugin path
+   */
+  const getImageUrl = (imagePath) => {
+    if (!isWordPressMode || !wpData) {
+      return imagePath; // Return original path for standalone mode
+    }
+    
+    // If already a full URL, return as-is
+    if (imagePath.startsWith('http')) {
+      return imagePath;
+    }
+    
+    // If starts with /, prepend plugin images URL
+    if (imagePath.startsWith('/')) {
+      return wpData.imagesUrl + imagePath.substring(1);
+    }
+    
+    // Otherwise prepend full images URL
+    return wpData.imagesUrl + imagePath;
+  };
+
+  /**
+   * Navigate to WordPress page
+   */
+  const navigateToPage = (url) => {
+    if (!isWordPressMode) {
+      return;
+    }
+    
+    if (url === 'cart' && wpData.cartUrl) {
+      window.location.href = wpData.cartUrl;
+    } else if (url === 'checkout' && wpData.checkoutUrl) {
+      window.location.href = wpData.checkoutUrl;
+    } else {
+      window.location.href = url;
+    }
+  };
+
+  /**
+   * Close WordPress modal
+   */
+  const closeModal = () => {
+    if (!isWordPressMode) {
+      return;
+    }
+    
+    // Use the global close function if available
+    if (typeof window.closeBraceletCustomizer === 'function') {
+      window.closeBraceletCustomizer();
+      return;
+    }
+    
+    // Fallback: trigger WordPress modal close event
+    const event = new CustomEvent('braceletCustomizerClose');
+    window.dispatchEvent(event);
+    
+    // Also try to close modal directly
+    const modal = document.getElementById('bracelet-customizer-modal');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    }
+  };
+
+  /**
+   * Format price using WooCommerce currency settings
+   */
+  const formatPrice = (price) => {
+    if (!isWordPressMode || !wpData?.currency) {
+      return `$${price.toFixed(2)}`; // Fallback for standalone mode
+    }
+
+    const { symbol, position, thousandSeparator, decimalSeparator, decimals } = wpData.currency;
+    
+    // Format the number with proper separators
+    const formattedNumber = price.toFixed(decimals);
+    const parts = formattedNumber.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, thousandSeparator);
+    const finalPrice = parts.join(decimalSeparator);
+    
+    // Position the currency symbol
+    switch (position) {
+      case 'left':
+        return `${symbol}${finalPrice}`;
+      case 'right':
+        return `${finalPrice}${symbol}`;
+      case 'left_space':
+        return `${symbol} ${finalPrice}`;
+      case 'right_space':
+        return `${finalPrice} ${symbol}`;
+      default:
+        return `${symbol}${finalPrice}`;
+    }
+  };
+
+  return {
+    wpData,
+    isWordPressMode,
+    isModalMode,
+    loading,
+    error,
+    initialProductId,
+    fetchBracelets,
+    fetchCharms,
+    saveCustomization,
+    addToCart,
+    getImageUrl,
+    navigateToPage,
+    closeModal,
+    formatPrice
+  };
+};
+
+export default useWordPressIntegration;
