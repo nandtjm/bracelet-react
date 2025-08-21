@@ -1,8 +1,24 @@
 import React from 'react';
 
-const StepNavigation = ({ currentStep, steps }) => {
+const StepNavigation = ({ currentStep, steps, onClose }) => {
   return (
-    <div style={{ marginBottom: '40px' }}>
+    <div style={{ marginBottom: '40px', position: 'relative', paddingTop: onClose ? '8px' : 0 }}>
+      {onClose && (
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer'
+          }}
+        >
+          ×
+        </button>
+      )}
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '16px' }}>
         {steps.map((step, index) => (
           <React.Fragment key={step}>

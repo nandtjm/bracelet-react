@@ -51,6 +51,13 @@ function App() {
   const [hoveredCharm, setHoveredCharm] = useState(null);
   const [charmImageDimensions, setCharmImageDimensions] = useState({});
   const [isDragInProgress, setIsDragInProgress] = useState(false);
+  const [isMobileOrTablet, setIsMobileOrTablet] = useState(window.innerWidth <= 1024);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobileOrTablet(window.innerWidth <= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Fetch data on component mount
   useEffect(() => {
@@ -633,7 +640,17 @@ function App() {
           backgroundColor: '#f9fafb',
           padding: '40px'
         }}>
-          <StepNavigation currentStep={currentStep} steps={steps} />
+          <StepNavigation
+            currentStep={currentStep}
+            steps={steps}
+            onClose={isMobileOrTablet ? () => {
+              if (isWordPressMode) {
+                closeModal();
+              } else {
+                // Standalone mode - could close or hide the app
+              }
+            } : undefined}
+          />
           
           <BraceletPreview
             customization={customization}
@@ -670,18 +687,18 @@ function App() {
           {/* Header */}
           <div style={{
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: isMobileOrTablet ? 'flex-start' : 'space-between',
             alignItems: 'center',
             padding: '20px 24px',
             borderBottom: '1px solid #f0f0f0'
           }}>
             <div style={{ width: '80px' }}>
               {(currentStep > 1 || isReviewMode) && (
-                <button 
-                  style={{ 
-                    background: 'none', 
-                    border: 'none', 
-                    fontSize: '14px', 
+                <button
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '14px',
                     cursor: 'pointer',
                     color: '#6b7280',
                     fontWeight: '500'
@@ -699,23 +716,28 @@ function App() {
                 </button>
               )}
             </div>
-            <div style={{ fontSize: '12px', fontWeight: '600', textAlign: 'center' }}>
-              <div>little words</div>
-              <div>project</div>
-            </div>
-            <button 
-              style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
-              onClick={() => {
-                if (isWordPressMode) {
-                  closeModal();
-                } else {
-                  // Standalone mode - could close or hide the app
-                  // console.log('Close button clicked in standalone mode');
-                }
-              }}
-            >
-              ×
-            </button>
+
+            {!isMobileOrTablet && (
+              <div style={{ fontSize: '12px', fontWeight: '600', textAlign: 'center' }}>
+                <div>little words</div>
+                <div>project</div>
+              </div>
+            )}
+
+            {!isMobileOrTablet && (
+              <button
+                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
+                onClick={() => {
+                  if (isWordPressMode) {
+                    closeModal();
+                  } else {
+                    // Standalone mode - could close or hide the app
+                  }
+                }}
+              >
+                ×
+              </button>
+            )}
           </div>
 
           {/* Content Area */}
