@@ -73,7 +73,8 @@ const BraceletPreview = ({
                 }}
               />
 
-              {getMainCharmImage() && (
+              {/* Main charm overlay - hide for Collabs products */}
+              {!isCollabsMode && getMainCharmImage() && (
                 <div className="_productOverlappingMainCharm_c850n_13">
                   <img
                     src={getMainCharmImage()}
@@ -86,8 +87,8 @@ const BraceletPreview = ({
                 </div>
               )}
               
-              {/* Dropzones - always visible in step 3 */}
-              {currentStep === 3 && !isReviewMode && (
+              {/* Dropzones - hide for Collabs products, always visible in step 3 for standard */}
+              {!isCollabsMode && currentStep === 3 && !isReviewMode && (
                 <div className="_productOverlappingDropzone_c850n_42" data-customizer-dropzone="true">
                   {[
                     { left: '18.5%', top: '70%' },
@@ -215,8 +216,8 @@ const BraceletPreview = ({
                 </div>
               )}
 
-              {/* Placed Charms visible on other steps (1, 2, review) */}
-              {(currentStep !== 3 || isReviewMode) && (
+              {/* Placed Charms visible on other steps (1, 2, review) - hide for Collabs */}
+              {!isCollabsMode && (currentStep !== 3 || isReviewMode) && (
                 <div className="_productOverlappingDropzone_c850n_42" data-customizer-dropzone="true">
                   {[
                     { left: '18.5%', top: '70%' },
@@ -379,7 +380,8 @@ const BraceletPreview = ({
               )}
             </div>
 
-            {!customization.word && [...Array(13)].map((_, dropIndex) => {
+            {/* Letter dropzones - hide for Collabs products */}
+            {!isCollabsMode && !customization.word && [...Array(13)].map((_, dropIndex) => {
               const angleRange = 120;
               const startAngle = 210 - (angleRange / 2);
               const angleStep = angleRange / 14;
@@ -416,7 +418,8 @@ const BraceletPreview = ({
           </div>
         </div>
         
-        {currentStep === 3 && !isReviewMode && (
+        {/* Charm instruction text - hide for Collabs products */}
+        {!isCollabsMode && currentStep === 3 && !isReviewMode && (
           <div style={{
             marginTop: '20px',
             fontSize: '14px',

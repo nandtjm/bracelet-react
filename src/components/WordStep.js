@@ -59,8 +59,8 @@ const WordStep = ({
           
           return (
             <div key={index} style={{
-              width: '24px',
-              height: '24px',
+              width: '19px',
+              height: '38px',
               borderRadius: '2px',
               display: 'flex',
               alignItems: 'center',
