@@ -23,6 +23,20 @@ const BraceletPreview = ({
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [draggingCharmIndex, setDraggingCharmIndex] = useState(null);
   
+  // Check if this is a Collabs design
+  const isCollabsMode = selectedBracelet && selectedBracelet.category === 'collabs';
+  
+  // Get the appropriate bracelet image based on mode
+  const getDisplayImage = () => {
+    if (isCollabsMode) {
+      // For Collabs, always use the main static image
+      return selectedBracelet.image;
+    } else {
+      // For standard bracelets, use dynamic image based on word length
+      return getBraceletImage();
+    }
+  };
+  
   // Get main charm image from selected bracelet
   const getMainCharmImage = () => {
     if (!selectedBracelet) return '';
@@ -49,7 +63,7 @@ const BraceletPreview = ({
           <div className="product-canvas">
             <div className="product-overlapping">
               <img
-                src={getBraceletImage()}
+                src={getDisplayImage()}
                 alt="Custom Bracelet"
                 className="main-bracelet-image"
                 style={{
@@ -317,49 +331,52 @@ const BraceletPreview = ({
                 </div>
               )}
               
-              <div className="product-overlapping-content">
-                {customization.word && customization.word.replace(/\s/g, '').length >= 2 && (() => {
-                  const totalCharCount = customization.word.length;
-                  let letterPosition = 0;
-                  
-                  return processWordForDisplay(customization.word).map((item, itemIndex) => {
-                    const isTrailingSpace = item.isSpace && 
-                      !customization.word.slice(itemIndex + 1).replace(/\s/g, '').length;
+              {/* Letter overlays - hide for Collabs mode since letters are shown in side panel */}
+              {!isCollabsMode && (
+                <div className="product-overlapping-content">
+                  {customization.word && customization.word.replace(/\s/g, '').length >= 2 && (() => {
+                    const totalCharCount = customization.word.length;
+                    let letterPosition = 0;
                     
-                    const imageImagePath = getLetterImagePath(
-                      item.char, 
-                      letterPosition, 
-                      totalCharCount, 
-                      customization.letterColor,
-                      isTrailingSpace
-                    );
-                    const currentLetterPosition = letterPosition;
-                    letterPosition++;
-                    
-                    if (!imageImagePath) {
-                      return null;
-                    }
-                    
-                    return (
-                      <div 
-                        key={`${item.isSpace ? 'space' : 'letter'}-${itemIndex}`}
-                        className="product-overlapping-letter"
-                        style={{ zIndex: 20 - currentLetterPosition }}
-                      >
-                        <img
-                          src={imageImagePath}
-                          alt={item.isSpace ? ' ' : item.char}
-                          loading="lazy"
-                          width="1500"
-                          height="1500"
-                          className="max-w-full h-full object-contain"
+                    return processWordForDisplay(customization.word).map((item, itemIndex) => {
+                      const isTrailingSpace = item.isSpace && 
+                        !customization.word.slice(itemIndex + 1).replace(/\s/g, '').length;
+                      
+                      const imageImagePath = getLetterImagePath(
+                        item.char, 
+                        letterPosition, 
+                        totalCharCount, 
+                        customization.letterColor,
+                        isTrailingSpace
+                      );
+                      const currentLetterPosition = letterPosition;
+                      letterPosition++;
+                      
+                      if (!imageImagePath) {
+                        return null;
+                      }
+                      
+                      return (
+                        <div 
+                          key={`${item.isSpace ? 'space' : 'letter'}-${itemIndex}`}
+                          className="product-overlapping-letter"
                           style={{ zIndex: 20 - currentLetterPosition }}
-                        />
-                      </div>
-                    );
-                  }).filter(Boolean);
-                })()}
-              </div>
+                        >
+                          <img
+                            src={imageImagePath}
+                            alt={item.isSpace ? ' ' : item.char}
+                            loading="lazy"
+                            width="1500"
+                            height="1500"
+                            className="max-w-full h-full object-contain"
+                            style={{ zIndex: 20 - currentLetterPosition }}
+                          />
+                        </div>
+                      );
+                    }).filter(Boolean);
+                  })()}
+                </div>
+              )}
             </div>
 
             {!customization.word && [...Array(13)].map((_, dropIndex) => {

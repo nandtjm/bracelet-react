@@ -86,7 +86,7 @@ const DesignStep = ({
               backgroundPosition: 'center'
             }}></div>
             <div style={{ fontSize: '12px', fontWeight: '500' }}>{bracelet.name}</div>
-            <div style={{ fontSize: '11px', color: '#6b7280' }}>{formatPrice ? formatPrice(bracelet.basePrice) : `$${bracelet.basePrice}`}</div>
+            <div style={{ fontSize: '11px', color: '#6b7280' }}>{formatPrice(bracelet.basePrice)}</div>
           </button>
         ))}
       </div>

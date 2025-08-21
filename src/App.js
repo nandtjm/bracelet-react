@@ -106,7 +106,9 @@ function App() {
       console.log(`Bracelets loaded: ${bracelets.length}, source: ${dataSource}`);
       const selectedBracelet = getSelectedBracelet();
       if (selectedBracelet) {
+        console.log('Selected bracelet all:', selectedBracelet);
         console.log('Selected bracelet:', selectedBracelet.id);
+        console.log('Selected bracelet category:', selectedBracelet.category);
         console.log('Space stone images available:', selectedBracelet.spaceStoneImages ? Object.keys(selectedBracelet.spaceStoneImages).length : 0);
         if (selectedBracelet.spaceStoneImages) {
           console.log('Space stone keys:', Object.keys(selectedBracelet.spaceStoneImages));
@@ -118,17 +120,30 @@ function App() {
   // Auto-select product when data is loaded and we have an initialProductId
   useEffect(() => {
     if (!loading && initialProductId && bracelets.length > 0) {
-      // Find the bracelet by WooCommerce ID
+      console.log('Attempting to auto-select product with ID:', initialProductId);
+      console.log('Available bracelets:', bracelets.map(b => ({ id: b.id, woocommerce_id: b.woocommerce_id, name: b.name })));
+      
+      // Find the bracelet by WooCommerce ID (prioritize this since it's the actual product ID)
       const targetBracelet = bracelets.find(bracelet => 
-        bracelet.woocommerce_id === initialProductId || 
+        bracelet.woocommerce_id == initialProductId ||  // Use == to handle string/int comparison
         bracelet.id === initialProductId.toString()
       );
       
       if (targetBracelet) {
+        console.log('Found matching bracelet:', targetBracelet);
         setCustomization(prev => ({
           ...prev,
           braceletStyle: targetBracelet.id
         }));
+        
+        // Set the category to match the selected product
+        if (targetBracelet.category === 'collabs') {
+          setSelectedCategory('Collabs');
+        } else if (targetBracelet.category === 'standard') {
+          setSelectedCategory('Standard');
+        }
+      } else {
+        console.log('No matching bracelet found for product ID:', initialProductId);
       }
     }
   }, [loading, initialProductId, bracelets]);
@@ -982,6 +997,7 @@ function App() {
                   getImageUrl={getImageUrl}
                   letterColors={getLetterColors()}
                   formatPrice={formatPrice}
+                  selectedBracelet={getSelectedBracelet()}
                 />
               )}
 
