@@ -138,6 +138,13 @@ export const useWordPressIntegration = () => {
         throw new Error('Failed to save customization before adding to cart');
       }
 
+      // Capture and upload preview image
+      const imageUrl = await uploadPreviewImage(savedCustomization.id);
+      if (imageUrl) {
+        // Add image URL to product data
+        productData.custom_image_url = imageUrl;
+      }
+
       // Then add to cart via AJAX
       const formData = new FormData();
       formData.append('action', 'bracelet_add_to_cart');
@@ -234,6 +241,90 @@ export const useWordPressIntegration = () => {
   };
 
   /**
+   * Capture and upload preview image
+   */
+  const uploadPreviewImage = async (customizationId) => {
+    if (!isWordPressMode || !wpData) {
+      return null;
+    }
+
+    try {
+      // Find the main bracelet image element
+      const mainImage = document.querySelector('.main-bracelet-image');
+      if (!mainImage || !mainImage.src) {
+        console.warn('Main bracelet image not found');
+        return null;
+      }
+
+      // Create canvas and capture the current visible bracelet image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas size (adjust as needed for your requirements)
+      canvas.width = 400;
+      canvas.height = 400;
+
+      // Create an image element to load the bracelet image
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+
+      return new Promise((resolve, reject) => {
+        img.onload = () => {
+          try {
+            // Draw the bracelet image
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+            // Convert to base64
+            const imageData = canvas.toDataURL('image/png');
+
+            // Upload to WordPress
+            const formData = new FormData();
+            formData.append('customization_id', customizationId);
+            formData.append('image_data', imageData);
+
+            fetch(`${wpData.restUrl}preview-image`, {
+              method: 'POST',
+              headers: {
+                'X-WP-Nonce': wpData.restNonce
+              },
+              body: formData
+            })
+            .then(response => {
+              if (!response.ok) {
+                throw new Error('Failed to upload preview image');
+              }
+              return response.json();
+            })
+            .then(result => {
+              resolve(result.image_url);
+            })
+            .catch(err => {
+              console.error('Error uploading preview image:', err);
+              resolve(null);
+            });
+
+          } catch (err) {
+            console.error('Error creating canvas:', err);
+            resolve(null);
+          }
+        };
+
+        img.onerror = () => {
+          console.error('Failed to load bracelet image for capture');
+          resolve(null);
+        };
+
+        // Load the current bracelet image
+        img.src = mainImage.src;
+      });
+
+    } catch (err) {
+      console.error('Error in uploadPreviewImage:', err);
+      return null;
+    }
+  };
+
+  /**
    * Format price using WooCommerce currency settings
    */
   const formatPrice = (price) => {
@@ -278,7 +369,8 @@ export const useWordPressIntegration = () => {
     getImageUrl,
     navigateToPage,
     closeModal,
-    formatPrice
+    formatPrice,
+    uploadPreviewImage
   };
 };
 

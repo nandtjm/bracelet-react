@@ -27,9 +27,16 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState('Standard');
 
   const steps = ['Design', 'Word', 'Charms'];
-  const categories = loading ? [] : ['All', ...new Set(bracelets.map(b => b.category))].map(cat => 
+  // Predefined categories (always show these categories)
+  const predefinedCategories = ['All', 'Standard', 'Collabs', 'Limited Edition', 'Engraving', 'Tiny Words'];
+  
+  // Dynamic categories from data
+  const dynamicCategories = loading ? [] : ['All', ...new Set(bracelets.map(b => b.category))].map(cat => 
     cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')
   );
+  
+  // Merge predefined and dynamic categories, remove duplicates
+  const categories = loading ? [] : [...new Set([...predefinedCategories, ...dynamicCategories])];
   const trendingWords = mockData.trendingWords; // Keep trending words from mock data
   const charmCategories = loading ? [] : ['All', ...new Set(charms.map(c => c.category))].map(cat => 
     cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')
@@ -960,6 +967,7 @@ function App() {
                   braceletsByCategory={braceletsByCategory}
                   customization={customization}
                   setCustomization={setCustomization}
+                  formatPrice={formatPrice}
                 />
               )}
 
@@ -993,6 +1001,7 @@ function App() {
                   isCharmSummaryExpanded={isCharmSummaryExpanded}
                   setIsCharmSummaryExpanded={setIsCharmSummaryExpanded}
                   setIsDragInProgress={setIsDragInProgress}
+                  formatPrice={formatPrice}
                 />
               )}
             </div>

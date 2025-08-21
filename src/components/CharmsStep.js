@@ -14,7 +14,8 @@ const CharmsStep = ({
   handleDragStart,
   isCharmSummaryExpanded,
   setIsCharmSummaryExpanded,
-  setIsDragInProgress
+  setIsDragInProgress,
+  formatPrice
 }) => {
   return (
     <div>
@@ -217,7 +218,7 @@ const CharmsStep = ({
               }}
             ></div>
             <div style={{ fontSize: '14px', marginBottom: '4px', fontWeight: '500' }}>{charm.name}</div>
-            <div style={{ fontSize: '14px', fontWeight: '600' }}>${charm.price}</div>
+            <div style={{ fontSize: '14px', fontWeight: '600' }}>{formatPrice ? formatPrice(charm.price) : `$${charm.price}`}</div>
           </div>
         ))}
       </div>
