@@ -624,14 +624,14 @@ function App() {
         </div>
       )}
       
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: '65% 35%', 
-        gap: '0',
-        height: '100vh',
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: isMobileOrTablet ? '1fr' : '65% 35%',
+        gap: isMobileOrTablet ? '30px' : '0',
+        height: isMobileOrTablet ? 'auto' : '100vh',
         minHeight: '100vh',
-        maxHeight: '100vh',
-        overflow: 'hidden'
+        maxHeight: isMobileOrTablet ? 'none' : '100vh',
+        overflow: isMobileOrTablet ? 'visible' : 'hidden'
       }}>
         {/* Preview Panel */}
         <div style={{ 
@@ -677,10 +677,10 @@ function App() {
         {/* Options Panel */}
         <div style={{
           backgroundColor: 'white',
-          height: '100vh',
-          minHeight: '100vh',
-          maxHeight: '100vh',
-          overflow: 'hidden',
+          height: isMobileOrTablet ? 'auto' : '100vh',
+          minHeight: isMobileOrTablet ? 'auto' : '100vh',
+          maxHeight: isMobileOrTablet ? 'none' : '100vh',
+          overflow: isMobileOrTablet ? 'visible' : 'hidden',
           display: 'flex',
           flexDirection: 'column'
         }}>
