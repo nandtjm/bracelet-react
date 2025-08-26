@@ -5,7 +5,7 @@ export const braceletStyles = [
     image: '/images/bracelets/gold-plated.png',
     price: 0,
     isBestSeller: true,
-    category: 'standard'
+    category: 'Standard'
   },
   {
     id: 'bluestone',
@@ -13,7 +13,7 @@ export const braceletStyles = [
     image: '/images/bracelets/bluestone.png',
     price: 0,
     isBestSeller: true,
-    category: 'standard'
+    category: 'Standard'
   },
   {
     id: 'amethyst-dreams',
@@ -21,7 +21,7 @@ export const braceletStyles = [
     image: '/images/bracelets/amethyst-dreams.png',
     price: 0,
     isBestSeller: true,
-    category: 'standard'
+    category: 'Standard'
   },
   {
     id: 'rainbow',
@@ -29,7 +29,7 @@ export const braceletStyles = [
     image: '/images/bracelets/rainbow.png',
     price: 0,
     isBestSeller: false,
-    category: 'standard'
+    category: 'Standard'
   },
   {
     id: 'joyful',
@@ -37,7 +37,7 @@ export const braceletStyles = [
     image: '/images/bracelets/joyful.png',
     price: 0,
     isBestSeller: false,
-    category: 'standard'
+    category: 'Standard'
   },
   {
     id: 'lava-stone-mens',
@@ -45,7 +45,7 @@ export const braceletStyles = [
     image: '/images/bracelets/lava-stone-mens.png',
     price: 0,
     isBestSeller: false,
-    category: 'standard'
+    category: 'Standard'
   },
   {
     id: 'pink-chalk',
@@ -53,7 +53,7 @@ export const braceletStyles = [
     image: '/images/bracelets/pink-chalk.png',
     price: 0,
     isBestSeller: true,
-    category: 'standard'
+    category: 'Standard'
   },
   {
     id: 'funfetti',
@@ -61,7 +61,7 @@ export const braceletStyles = [
     image: '/images/bracelets/funfetti.png',
     price: 0,
     isBestSeller: false,
-    category: 'standard'
+    category: 'Standard'
   },
   {
     id: 'evil-eye',
@@ -69,7 +69,7 @@ export const braceletStyles = [
     image: '/images/bracelets/evil-eye.png',
     price: 0,
     isBestSeller: false,
-    category: 'standard'
+    category: 'Standard'
   }
 ];
 

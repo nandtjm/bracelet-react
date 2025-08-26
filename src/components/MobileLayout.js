@@ -171,6 +171,7 @@ const MobileLayout = ({
             flex: 1,
             overflowY: 'auto',
             padding: '20px',
+            paddingTop: steps[currentStep - 1] === 'Charms' ? '0px' : '20px', // No top padding on Charms step
             paddingBottom: '100px' // Space for sticky button
           }}>
             {bottomPanelContent || renderStepContent?.()}
