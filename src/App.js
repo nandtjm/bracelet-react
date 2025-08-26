@@ -721,13 +721,27 @@ function App() {
         return null;
       }
 
-      // Capture the screenshot
+      // Wait a bit for any loading images to complete
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Capture the screenshot with better error handling
       const dataUrl = await toPng(previewElement, {
         quality: 1.0,
         pixelRatio: 2, // For higher quality on retina displays
         backgroundColor: '#f9fafb', // Match the background color
         width: previewElement.offsetWidth,
-        height: previewElement.offsetHeight
+        height: previewElement.offsetHeight,
+        useCORS: true, // Handle CORS issues
+        allowTaint: true, // Allow cross-origin images
+        skipFonts: true, // Skip font loading to avoid delays
+        filter: (node) => {
+          // Skip problematic elements that might cause errors
+          if (node.tagName === 'IMG') {
+            // Only include images that are actually loaded
+            return node.complete && node.naturalHeight !== 0;
+          }
+          return true;
+        }
       });
 
       // Create a download link and trigger download
@@ -745,7 +759,35 @@ function App() {
       return dataUrl;
     } catch (error) {
       console.error('Error capturing screenshot:', error);
-      return null;
+      
+      // Fallback: try with more permissive settings
+      try {
+        const previewElement = document.querySelector('.bc-bracelet-preview-container');
+        const dataUrl = await toPng(previewElement, {
+          quality: 0.8,
+          pixelRatio: 1,
+          backgroundColor: '#f9fafb',
+          skipFonts: true,
+          filter: () => true // Include all elements in fallback
+        });
+        
+        const link = document.createElement('a');
+        const selectedBracelet = getSelectedBracelet();
+        const fileName = `custom-bracelet-${selectedBracelet.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
+        
+        link.download = fileName;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        console.log('Screenshot captured with fallback settings:', fileName);
+        return dataUrl;
+      } catch (fallbackError) {
+        console.error('Fallback screenshot also failed:', fallbackError);
+        alert('Unable to capture screenshot. Please try again or take a manual screenshot.');
+        return null;
+      }
     }
   };
 
