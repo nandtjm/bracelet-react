@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import html2canvas from 'html2canvas';
 
 /**
  * WordPress Integration Hook
@@ -183,7 +184,7 @@ export const useWordPressIntegration = () => {
     }
     
     // If already a full URL, return as-is
-    if (imagePath.startsWith('http')) {
+    if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
       return imagePath;
     }
     
@@ -205,11 +206,11 @@ export const useWordPressIntegration = () => {
     }
     
     if (url === 'cart' && wpData.cartUrl) {
-      window.location.href = wpData.cartUrl;
+      //window.location.href = wpData.cartUrl;
     } else if (url === 'checkout' && wpData.checkoutUrl) {
-      window.location.href = wpData.checkoutUrl;
+      //window.location.href = wpData.checkoutUrl;
     } else {
-      window.location.href = url;
+      //window.location.href = url;
     }
   };
 
@@ -245,16 +246,105 @@ export const useWordPressIntegration = () => {
    */
   const uploadPreviewImage = async (customizationId) => {
     if (!isWordPressMode || !wpData) {
+      console.log('Not in WordPress mode or no wpData available');
       return null;
     }
 
+    console.log('Starting preview image capture for customization ID:', customizationId);
+
     try {
-      // Find the main bracelet image element
+      // Add a small delay to ensure all elements are rendered
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Try to find the entire bracelet preview container first
+      const previewContainer = document.querySelector('.bracelet-preview-container') || 
+                              document.querySelector('.product-canvas') ||
+                              document.querySelector('.product-overlapping');
+      
+      console.log('Preview container found:', !!previewContainer);
+      console.log('Preview container element:', previewContainer);
+      console.log('Preview container children:', previewContainer?.children?.length);
+      
+      // Check for letters and charms in the preview
+      const letterElements = document.querySelectorAll('.product-overlapping-letter');
+      const charmElements = document.querySelectorAll('._draggableInnerItem_1xii1_16');
+      const mainBraceletImage = document.querySelector('.main-bracelet-image');
+      
+      console.log('Found letter elements:', letterElements.length);
+      console.log('Found charm elements:', charmElements.length);
+      console.log('Found main bracelet image:', !!mainBraceletImage);
+      
+      if (previewContainer) {
+        // Use html2canvas to capture the entire preview
+        if (html2canvas) {
+          try {
+            console.log('Attempting html2canvas capture...');
+            
+            // Give extra time for all images to load
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const canvas = await html2canvas(previewContainer, {
+              width: 400,
+              height: 400,
+              backgroundColor: '#ffffff',
+              useCORS: true,
+              allowTaint: true,
+              scale: 1,
+              logging: true, // Enable logging for debugging
+              removeContainer: false,
+              imageTimeout: 5000, // Wait longer for images to load
+              onclone: (clonedDoc) => {
+                console.log('html2canvas cloned document, checking elements...');
+                const clonedImages = clonedDoc.querySelectorAll('img');
+                console.log('Cloned images count:', clonedImages.length);
+              }
+            });
+
+            console.log('html2canvas capture successful, canvas size:', canvas.width, 'x', canvas.height);
+
+            // Convert to base64
+            const imageData = canvas.toDataURL('image/png');
+            console.log('Image data length:', imageData.length);
+
+            // Upload to WordPress
+            const formData = new FormData();
+            formData.append('customization_id', customizationId);
+            formData.append('image_data', imageData);
+
+            console.log('Uploading to WordPress...');
+            const response = await fetch(`${wpData.restUrl}preview-image`, {
+              method: 'POST',
+              headers: {
+                'X-WP-Nonce': wpData.restNonce
+              },
+              body: formData
+            });
+
+            if (!response.ok) {
+              throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            console.log('Upload successful, result:', result);
+            return result.image_url;
+          } catch (html2canvasError) {
+            console.error('html2canvas failed, falling back to manual canvas:', html2canvasError);
+          }
+        } else {
+          console.log('html2canvas not available, using manual canvas');
+        }
+      } else {
+        console.log('No preview container found');
+      }
+
+      // Fallback: Find the main bracelet image element and composite the preview
       const mainImage = document.querySelector('.main-bracelet-image');
       if (!mainImage || !mainImage.src) {
         console.warn('Main bracelet image not found');
         return null;
       }
+
+      console.log('Fallback to manual composite image creation...');
 
       // Create canvas and capture the current visible bracelet image
       const canvas = document.createElement('canvas');
@@ -263,6 +353,10 @@ export const useWordPressIntegration = () => {
       // Set canvas size (adjust as needed for your requirements)
       canvas.width = 400;
       canvas.height = 400;
+      
+      // Set white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       // Create an image element to load the bracelet image
       const img = new Image();
@@ -271,8 +365,36 @@ export const useWordPressIntegration = () => {
       return new Promise((resolve, reject) => {
         img.onload = () => {
           try {
-            // Draw the bracelet image
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            // Draw the bracelet image centered
+            const aspectRatio = img.width / img.height;
+            let drawWidth = canvas.width;
+            let drawHeight = canvas.height;
+            
+            if (aspectRatio > 1) {
+              drawHeight = canvas.height / aspectRatio;
+            } else {
+              drawWidth = canvas.width * aspectRatio;
+            }
+            
+            const x = (canvas.width - drawWidth) / 2;
+            const y = (canvas.height - drawHeight) / 2;
+            
+            ctx.drawImage(img, x, y, drawWidth, drawHeight);
+
+            // Try to add text overlay if we can get the customization
+            const wordContainer = document.querySelector('.product-overlapping-content') || 
+                                document.querySelector('.letter-blocks-container') ||
+                                document.querySelector('.word-overlay');
+            if (wordContainer) {
+              // This is a simplified text overlay - in production you'd want to render the actual letter blocks
+              const textData = wordContainer.textContent || wordContainer.innerText;
+              if (textData && textData.trim()) {
+                ctx.font = 'bold 16px Arial';
+                ctx.fillStyle = '#333333';
+                ctx.textAlign = 'center';
+                ctx.fillText(textData.trim(), canvas.width / 2, canvas.height - 30);
+              }
+            }
 
             // Convert to base64
             const imageData = canvas.toDataURL('image/png');
@@ -291,11 +413,12 @@ export const useWordPressIntegration = () => {
             })
             .then(response => {
               if (!response.ok) {
-                throw new Error('Failed to upload preview image');
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
               }
               return response.json();
             })
             .then(result => {
+              console.log('Preview image uploaded successfully:', result.image_url);
               resolve(result.image_url);
             })
             .catch(err => {

@@ -23,6 +23,7 @@ const DesignStep = ({
           {categories.map(category => (
             <button
               key={category}
+              id={`bc-category-${category.toLowerCase().replace(/\s+/g, '-')}`}
               style={{
                 padding: '12px 20px',
                 border: 'none',
@@ -49,6 +50,7 @@ const DesignStep = ({
         {braceletsByCategory[selectedCategory].map(bracelet => (
           <button
             key={bracelet.id}
+            id={`bc-bracelet-${bracelet.id}`}
             style={{
               padding: '16px',
               border: `2px solid ${customization.braceletStyle === bracelet.id ? '#4F46E5' : '#f3f4f6'}`,
@@ -58,20 +60,31 @@ const DesignStep = ({
               cursor: 'pointer',
               position: 'relative'
             }}
-            onClick={() => setCustomization({...customization, braceletStyle: bracelet.id})}
+            onClick={() => {
+              // Reset charms and letters when switching between products
+              setCustomization({
+                ...customization, 
+                braceletStyle: bracelet.id,
+                selectedCharms: [], // Reset charms
+                word: '', // Reset word/letters
+                letterColor: 'white' // Reset to default letter color
+              });
+            }}
           >
             {bracelet.isBestSeller && (
-              <div style={{
-                position: 'absolute',
-                top: '4px',
-                left: '4px',
-                background: '#ef4444',
-                color: 'white',
-                fontSize: '8px',
-                fontWeight: '600',
-                padding: '2px 6px',
-                borderRadius: '4px'
-              }}>
+              <div
+                className='best-seller-badge bc-badge'
+                style={{
+                  position: 'absolute',
+                  top: '4px',
+                  left: '4px',
+                  background: '#ef4444',
+                  color: 'white',
+                  fontSize: '8px',
+                  fontWeight: '600',
+                  padding: '2px 6px',
+                  borderRadius: '4px'
+                }}>
                 BEST SELLER
               </div>
             )}

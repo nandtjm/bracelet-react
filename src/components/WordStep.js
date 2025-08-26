@@ -13,8 +13,17 @@ const WordStep = ({
   selectedBracelet
 }) => {
   
-  // Check if this is a Collabs design
-  const isCollabsMode = selectedBracelet && selectedBracelet.category === 'collabs';
+  // Debug: Log letterColors to check for duplicates
+  console.log('WordStep - received letterColors:', letterColors);
+  console.log('WordStep - letterColors length:', letterColors?.length);
+  console.log('WordStep - letterColors IDs:', letterColors?.map(c => c.id));
+  
+  // Check product type for different modes
+  const isCollabsMode = selectedBracelet && selectedBracelet.category === 'Collabs';
+  const isTinyWordsMode = selectedBracelet && selectedBracelet.category === 'Tiny Words';
+  
+  // Get max word length based on product type
+  const maxWordLength = selectedBracelet?.maxWordLength || (isTinyWordsMode ? 10 : 13);
   
   // Create letter preview component for Collabs mode
   const LetterPreview = ({ word }) => {
@@ -84,11 +93,12 @@ const WordStep = ({
   };
   return (
     <div>
-      <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '500' }}>Letter Color</h3>
+      <h3 className="bc-letter-color-label" style={{ marginBottom: '16px', fontSize: '18px', fontWeight: '500' }}>Letter Color</h3>
       <div style={{ display: 'flex', gap: '24px', marginBottom: '32px', alignItems: 'flex-end' }}>
         {letterColors.map(color => (
           <div key={color.id} style={{ textAlign: 'center' }}>
             <button
+              id={`bc-letter-color-${color.id}`}
               style={{
                 width: '64px',
                 height: '64px',
@@ -96,7 +106,7 @@ const WordStep = ({
                 borderRadius: '50%',
                 background: color.id === 'gold' 
                   ? `url('${getImageUrl('gold-swatch.jpg')}') center/cover` 
-                  : color.hexColor,
+                  : color.color,
                 cursor: 'pointer',
                 display: 'block',
                 marginBottom: '8px',
@@ -113,14 +123,15 @@ const WordStep = ({
         ))}
       </div>
 
-      <h3 style={{ marginBottom: '16px' }}>Enter your word</h3>
+      <h3 className='bc-word-label' style={{ marginBottom: '16px' }}>Enter your word</h3>
       
       {/* Different layout for Collabs vs Standard */}
       {isCollabsMode ? (
         /* Collabs mode: Input and letter preview side by side */
         <div style={{ display: 'flex', gap: '24px', marginBottom: '16px', alignItems: 'flex-start' }}>
-          <div style={{ flex: '1', maxWidth: '400px' }}>
+          <div className='bc-collabs-input' style={{ flex: '1', maxWidth: '400px' }}>
             <input
+              className='bc-letter-input'
               type="text"
               value={customization.word}
               onChange={(e) => {
@@ -139,7 +150,7 @@ const WordStep = ({
                 boxSizing: 'border-box'
               }}
               placeholder="STAY WILD"
-              maxLength="13"
+              maxLength={maxWordLength}
             />
           </div>
           <div style={{ flex: '1', display: 'flex', alignItems: 'center', minHeight: '56px' }}>
@@ -149,6 +160,7 @@ const WordStep = ({
       ) : (
         /* Standard mode: Full width input */
         <input
+          className='bc-letter-input'
           type="text"
           value={customization.word}
           onChange={(e) => {
@@ -168,7 +180,7 @@ const WordStep = ({
             boxSizing: 'border-box'
           }}
           placeholder="LET THEM"
-          maxLength="13"
+          maxLength={maxWordLength}
         />
       )}
       
@@ -178,10 +190,10 @@ const WordStep = ({
         marginBottom: '24px',
         lineHeight: '1.4'
       }}>
-        13 characters maximum, minimum 2. Letter, number, :), &lt;3, !, #, &amp;, and : characters only.
+{maxWordLength} characters maximum, minimum 2. Letter, number, :), &lt;3, !, #, &amp;, and : characters only.
       </div>
       
-      <h4 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: '600' }}>Trending Words</h4>
+      <h4 className='bc-trending-words-label' style={{ marginBottom: '16px', fontSize: '16px', fontWeight: '600' }}>Trending Words</h4>
       <div 
         className="category-scroll"
         style={{
@@ -191,27 +203,53 @@ const WordStep = ({
           paddingBottom: '8px'
         }}
       >
-        {trendingWords.map(word => (
-          <button
-            key={word}
-            style={{
-              padding: '12px 20px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '25px',
-              background: 'white',
-              color: '#374151',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              transition: 'all 0.2s ease'
-            }}
-            onClick={() => setCustomization({...customization, word: word})}
-          >
-            {word}
-          </button>
-        ))}
+        {trendingWords.map(word => {
+          // For tiny_words, check processed word (without spaces) for validation
+          const processedWord = isTinyWordsMode ? word.replace(/\s/g, '') : word;
+          const isWordTooLong = processedWord.length > maxWordLength;
+          const isWordValid = isValidCharacters(processedWord) && processedWord.length <= maxWordLength;
+          
+          return (
+            <button
+              key={word}
+              className='bc-trending-word'
+              id='bc-trending-word-{{word}}'
+              style={{
+                padding: '12px 20px',
+                border: isWordTooLong ? '1px solid #ef4444' : '1px solid #e5e7eb',
+                borderRadius: '25px',
+                background: isWordTooLong ? '#fef2f2' : 'white',
+                color: isWordTooLong ? '#ef4444' : '#374151',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: isWordTooLong ? 'not-allowed' : 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                transition: 'all 0.2s ease',
+                opacity: isWordTooLong ? 0.7 : 1
+              }}
+              onClick={() => {
+                // For tiny_words products, automatically remove spaces from trending words
+                const processedWord = isTinyWordsMode ? word.replace(/\s/g, '') : word;
+                const isProcessedWordValid = isValidCharacters(processedWord) && processedWord.length <= maxWordLength;
+                
+                if (isProcessedWordValid) {
+                  setCustomization({...customization, word: processedWord});
+                } else if (processedWord.length > maxWordLength) {
+                  alert(`"${processedWord}" is too long for this product (${processedWord.length} characters). Maximum is ${maxWordLength} characters.`);
+                } else {
+                  alert(`"${processedWord}" contains invalid characters.`);
+                }
+              }}
+              title={isWordTooLong 
+                ? `Too long (${processedWord.length}/${maxWordLength} characters)${isTinyWordsMode && word !== processedWord ? ' - spaces removed' : ''}` 
+                : (isTinyWordsMode && word !== processedWord ? `Will become: "${processedWord}"` : '')
+              }
+            >
+              {word}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

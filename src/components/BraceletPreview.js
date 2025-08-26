@@ -23,13 +23,16 @@ const BraceletPreview = ({
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [draggingCharmIndex, setDraggingCharmIndex] = useState(null);
   
-  // Check if this is a Collabs design
-  const isCollabsMode = selectedBracelet && selectedBracelet.category === 'collabs';
-  
+  // Check product types
+  const isCollabsMode = selectedBracelet && selectedBracelet.category === 'Collabs';
+  const isTinyWordsMode = selectedBracelet && selectedBracelet.category === 'Tiny Words';
+  const isNoWordsMode = selectedBracelet && selectedBracelet.category === 'No Words';
+  const isStandardMode = selectedBracelet && selectedBracelet.category === 'Standard';
+  console.log('BraceletPreview - selectedBracelet:', selectedBracelet);
   // Get the appropriate bracelet image based on mode
   const getDisplayImage = () => {
-    if (isCollabsMode) {
-      // For Collabs, always use the main static image
+    if (isCollabsMode || isNoWordsMode) {
+      // For Collabs and No Words, always use the main static image
       return selectedBracelet.image;
     } else {
       // For standard bracelets, use dynamic image based on word length
@@ -39,6 +42,7 @@ const BraceletPreview = ({
   
   // Get main charm image from selected bracelet
   const getMainCharmImage = () => {
+    console.log('getMainCharmImage - selectedBracelet:', selectedBracelet);
     if (!selectedBracelet) return '';
     
     // Check if bracelet has main charm image data
@@ -46,7 +50,12 @@ const BraceletPreview = ({
       return getImageUrl(selectedBracelet.mainCharmImage);
     }
     
-    // Fallback to hardcoded image if no main charm image is set
+    // Only Standard products should have main charm images
+    if (!isStandardMode) {
+      return ''; // No main charm for non-Standard products
+    }
+    
+    // Fallback to hardcoded image only for Standard products when no meta exists
     return "https://cld.accentuate.io/6899436781649/1655920066230/Charm-gold-yellow.Denoiser-moved.png?v=1724640829437&options=w_900";
   };
   
@@ -59,13 +68,13 @@ const BraceletPreview = ({
       justifyContent: 'center' 
     }}>
       <div style={{ textAlign: 'center' }}>
-        <div className="bracelet-preview-container">
-          <div className="product-canvas">
-            <div className="product-overlapping">
+        <div className="bc-bracelet-preview-container">
+          <div className="bc-product-canvas">
+            <div className="bc-product-overlapping">
               <img
                 src={getDisplayImage()}
                 alt="Custom Bracelet"
-                className="main-bracelet-image"
+                className="bc-main-bracelet-image"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -73,9 +82,9 @@ const BraceletPreview = ({
                 }}
               />
 
-              {/* Main charm overlay - hide for Collabs products */}
-              {!isCollabsMode && getMainCharmImage() && (
-                <div className="_productOverlappingMainCharm_c850n_13">
+              {/* Main charm overlay - only show for Standard products that have main charm data */}
+              {isStandardMode && getMainCharmImage() && (
+                <div className="bc-product-overlapping-main-charm">
                   <img
                     src={getMainCharmImage()}
                     alt="Main Charm"
@@ -87,10 +96,18 @@ const BraceletPreview = ({
                 </div>
               )}
               
-              {/* Dropzones - hide for Collabs products, always visible in step 3 for standard */}
-              {!isCollabsMode && currentStep === 3 && !isReviewMode && (
-                <div className="_productOverlappingDropzone_c850n_42" data-customizer-dropzone="true">
-                  {[
+              {/* Interactive Dropzones - show for Standard products in charm step (step 3) and No Words products in charm step (step 2) */}
+              {((isStandardMode && currentStep === 3) || (isNoWordsMode && currentStep === 2)) && !isReviewMode && (
+                <div className="bc-product-overlapping-dropzone" data-customizer-dropzone="true">
+                  {(isNoWordsMode ? [
+                    { left: '40%', top: '65%' },  // 1st position
+                    { left: '27%', top: '53%' },  // 2nd position
+                    { left: '29.5%', top: '33%' }, // 3rd position
+                    { left: '41%', top: '24%' },  // 4th position
+                    { left: '56%', top: '28%' },  // 5th position
+                    { left: '65%', top: '41%' },  // 6th position
+                    { left: '62%', top: '58%' }   // 7th position
+                  ] : [
                     { left: '18.5%', top: '70%' },
                     { left: '8%', top: '53%' },
                     { left: '10%', top: '33%' },
@@ -100,14 +117,14 @@ const BraceletPreview = ({
                     { left: '82%', top: '33%' },
                     { left: '83%', top: '52.5%' },
                     { left: '73%', top: '69%' }
-                  ].map((position, index) => {
+                  ]).map((position, index) => {
                     const charmInThisDropzone = customization.selectedCharms.find(c => c.dropzoneIndex === index);
                     const isOccupied = !!charmInThisDropzone;
                     
                     return (
                       <div 
                         key={index}
-                        className={`_dropzone_1xii1_43 ${!isOccupied ? '_dropzoneFull_1xii1_49' : ''}`}
+                        className={`bc-dropzone ${!isOccupied ? 'bc-dropzone-full' : ''}`}
                         style={{ 
                           left: position.left, 
                           top: position.top,
@@ -128,14 +145,14 @@ const BraceletPreview = ({
                           setDragOverIndex(null);
                         }}
                       >
-                        <div className="_magneticZone_1xii1_5"></div>
+                        <div className="bc-magnetic-zone"></div>
                         
                         {/* Charm content - only show if charm is placed */}
                         {charmInThisDropzone && (
                           <>
                             <button 
                               type="button" 
-                              className="_draggableInnerItemRemove_1xii1_36" 
+                              className="bc-draggable-inner-item-remove" 
                               aria-label="Remove" 
                               data-draggable-remove="true" 
                               style={{ 
@@ -161,7 +178,7 @@ const BraceletPreview = ({
                             </button>
                             
                             <div 
-                              className="_dragBox_fya8s_1 _draggableInnerItem_1xii1_16" 
+                              className="bc-drag-box bc-draggable-inner-item" 
                               draggable="true" 
                               data-original-scale="6" 
                               data-draggable="true" 
@@ -197,7 +214,7 @@ const BraceletPreview = ({
                                 src={getCharmPositionImagePath(charmInThisDropzone.name, index)}
                                 alt={charmInThisDropzone.name} 
                                 loading="eager" 
-                                className="max-w-full h-full object-contain _draggableInnerItemImage_1xii1_23" 
+                                className="max-w-full h-full object-contain bc-draggable-inner-item-image" 
                                 style={{ 
                                   pointerEvents: 'none',
                                   maxWidth: '80px',
@@ -216,10 +233,18 @@ const BraceletPreview = ({
                 </div>
               )}
 
-              {/* Placed Charms visible on other steps (1, 2, review) - hide for Collabs */}
-              {!isCollabsMode && (currentStep !== 3 || isReviewMode) && (
-                <div className="_productOverlappingDropzone_c850n_42" data-customizer-dropzone="true">
-                  {[
+              {/* Placed Charms visible on other steps - show for Standard products (not on step 3) and No Words products (not on step 2)  */}
+               { ((isStandardMode && (currentStep !== 3 || isReviewMode)) || (isNoWordsMode && (currentStep !== 2 || isReviewMode))) && (
+                <div className="bc-product-overlapping-dropzone" data-customizer-dropzone="true">
+                  {(isNoWordsMode ? [
+                    { left: '40%', top: '65%' },  // 1st position
+                    { left: '27%', top: '53%' },  // 2nd position
+                    { left: '29.5%', top: '33%' }, // 3rd position
+                    { left: '41%', top: '24%' },  // 4th position
+                    { left: '56%', top: '28%' },  // 5th position
+                    { left: '65%', top: '41%' },  // 6th position
+                    { left: '62%', top: '58%' }   // 7th position
+                  ] : [
                     { left: '18.5%', top: '70%' },
                     { left: '8%', top: '53%' },
                     { left: '10%', top: '33%' },
@@ -229,7 +254,7 @@ const BraceletPreview = ({
                     { left: '82%', top: '33%' },
                     { left: '83%', top: '52.5%' },
                     { left: '73%', top: '69%' }
-                  ].map((position, index) => {
+                  ]).map((position, index) => {
                     const charmInThisDropzone = customization.selectedCharms.find(c => c.dropzoneIndex === index);
                     
                     if (!charmInThisDropzone) return null;
@@ -237,7 +262,7 @@ const BraceletPreview = ({
                     return (
                       <div 
                         key={index}
-                        className="_dropzone_1xii1_43"
+                        className="bc-dropzone"
                         style={{ 
                           left: position.left, 
                           top: position.top,
@@ -247,14 +272,15 @@ const BraceletPreview = ({
                           visibility: (isReviewMode || charmInThisDropzone) ? 'hidden' : 'visible'
                         }}
                       >
-                        <div className="_magneticZone_1xii1_5" style={{
+                        <div className="bc-magnetic-zone" style={{
                           visibility: (isReviewMode || charmInThisDropzone) ? 'hidden' : 'visible'
                         }}></div>
                         
-                        {/* Close button - visible in ALL steps when charms are placed */}
+                        {/* Close button - visible for Standard products in charm step and No Words products in charm step */}
+                        {((isStandardMode && currentStep === 3) || (isNoWordsMode && currentStep === 2)) && (
                         <button 
                           type="button" 
-                          className="_draggableInnerItemRemove_1xii1_36" 
+                          className="bc-draggable-inner-item-remove" 
                           aria-label="Remove" 
                           data-draggable-remove="true" 
                           style={{ 
@@ -270,8 +296,7 @@ const BraceletPreview = ({
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: 'white',
-                            zIndex: 1000,
-                            visibility: 'visible' // Always visible for close button in ALL steps
+                            zIndex: 1000
                           }}
                           onClick={() => removeCharmFromDropzone(charmInThisDropzone.id, index)}
                         >
@@ -279,35 +304,36 @@ const BraceletPreview = ({
                             <path d="m289.94 256 95-95A24 24 0 0 0 351 127l-95 95-95-95a24 24 0 0 0-34 34l95 95-95 95a24 24 0 1 0 34 34l95-95 95 95a24 24 0 0 0 34-34z"></path>
                           </svg>
                         </button>
+                        )}
                         
                         <div 
-                          className="_dragBox_fya8s_1 _draggableInnerItem_1xii1_16" 
-                          draggable={!isReviewMode}
+                          className="bc-drag-box bc-draggable-inner-item" 
+                          draggable={!isReviewMode && (isStandardMode || (isNoWordsMode && currentStep === 2))}
                           data-original-scale="6" 
-                          data-draggable={!isReviewMode}
+                          data-draggable={!isReviewMode && (isStandardMode || (isNoWordsMode && currentStep === 2))}
                           role="button" 
-                          tabIndex={isReviewMode ? -1 : 0}
-                          aria-disabled={isReviewMode}
-                          aria-roledescription={isReviewMode ? "" : "draggable"}
+                          tabIndex={isReviewMode || (isNoWordsMode && currentStep !== 2) || (isCollabsMode || isTinyWordsMode) ? -1 : 0}
+                          aria-disabled={isReviewMode || (isNoWordsMode && currentStep !== 2) || (isCollabsMode || isTinyWordsMode)}
+                          aria-roledescription={isReviewMode || (isNoWordsMode && currentStep !== 2) || (isCollabsMode || isTinyWordsMode) ? "" : "draggable"}
                           style={{ 
                             ...getCharmPositionStyles(index),
                             position: 'absolute',
                             width: '80px',
                             height: '80px',
-                            cursor: isReviewMode ? 'default' : 'grab',
+                            cursor: isReviewMode || (isNoWordsMode && currentStep !== 2) || (isCollabsMode || isTinyWordsMode) ? 'default' : 'grab',
                             zIndex: 15,
                             opacity: 1,
                             transition: 'opacity 0.2s ease',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            visibility: 'visible' // Always visible for charm image
+                            visibility: 'visible'
                           }}
-                          onDragStart={!isReviewMode ? (e) => {
+                          onDragStart={!isReviewMode && (isStandardMode || (isNoWordsMode && currentStep === 2)) ? (e) => {
                             e.stopPropagation();
                             handleDragStart(e, { ...charmInThisDropzone, currentDropzoneIndex: index }, 'placed-charm');
                           } : undefined}
-                          onDragEnd={!isReviewMode ? () => {
+                          onDragEnd={!isReviewMode && (isStandardMode || (isNoWordsMode && currentStep === 2)) ? () => {
                             setIsDragInProgress(false);
                           } : undefined}
                         >
@@ -315,7 +341,7 @@ const BraceletPreview = ({
                             src={getCharmPositionImagePath(charmInThisDropzone.name, index)}
                             alt={charmInThisDropzone.name} 
                             loading="eager" 
-                            className="max-w-full h-full object-contain _draggableInnerItemImage_1xii1_23" 
+                            className="max-w-full h-full object-contain bc-draggable-inner-item-image" 
                             style={{ 
                               pointerEvents: 'none',
                               maxWidth: '80px',
@@ -332,9 +358,9 @@ const BraceletPreview = ({
                 </div>
               )}
               
-              {/* Letter overlays - hide for Collabs mode since letters are shown in side panel */}
-              {!isCollabsMode && (
-                <div className="product-overlapping-content">
+              {/* Letter overlays - show for Tiny Words and Standard products only */}
+              {(isTinyWordsMode || isStandardMode) && (
+                <div className="bc-product-overlapping-content">
                   {customization.word && customization.word.replace(/\s/g, '').length >= 2 && (() => {
                     const totalCharCount = customization.word.length;
                     let letterPosition = 0;
@@ -360,7 +386,7 @@ const BraceletPreview = ({
                       return (
                         <div 
                           key={`${item.isSpace ? 'space' : 'letter'}-${itemIndex}`}
-                          className="product-overlapping-letter"
+                          className="bc-product-overlapping-letter"
                           style={{ zIndex: 20 - currentLetterPosition }}
                         >
                           <img
@@ -380,8 +406,8 @@ const BraceletPreview = ({
               )}
             </div>
 
-            {/* Letter dropzones - hide for Collabs products */}
-            {!isCollabsMode && !customization.word && [...Array(13)].map((_, dropIndex) => {
+            {/* Letter dropzones - hide for Collabs and No Words products */}
+            {!isCollabsMode && !isNoWordsMode && !customization.word && [...Array(13)].map((_, dropIndex) => {
               const angleRange = 120;
               const startAngle = 210 - (angleRange / 2);
               const angleStep = angleRange / 14;
@@ -394,7 +420,7 @@ const BraceletPreview = ({
               return (
                 <div
                   key={`dropzone-${dropIndex}`}
-                  className="letter-dropzone"
+                  className="bc-letter-dropzone"
                   style={{
                     position: 'absolute',
                     left: '50%',
@@ -418,8 +444,8 @@ const BraceletPreview = ({
           </div>
         </div>
         
-        {/* Charm instruction text - hide for Collabs products */}
-        {!isCollabsMode && currentStep === 3 && !isReviewMode && (
+        {/* Charm instruction text - hide for Collabs products, adjust step for No Words products */}
+        {!isCollabsMode && currentStep === (isNoWordsMode ? 2 : 3) && !isReviewMode && (
           <div style={{
             marginTop: '20px',
             fontSize: '14px',

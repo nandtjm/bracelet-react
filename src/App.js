@@ -6,6 +6,7 @@ import StepNavigation from './components/StepNavigation';
 import DesignStep from './components/DesignStep';
 import WordStep from './components/WordStep';
 import CharmsStep from './components/CharmsStep';
+import MobileLayout from './components/MobileLayout';
 import useWordPressIntegration from './hooks/useWordPressIntegration';
 
 function App() {
@@ -24,19 +25,35 @@ function App() {
     selectedCharms: [],
     size: 'xs'
   });
-  const [selectedCategory, setSelectedCategory] = useState('Standard');
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
-  const steps = ['Design', 'Word', 'Charms'];
-  // Predefined categories (always show these categories)
-  const predefinedCategories = ['All', 'Standard', 'Collabs', 'Limited Edition', 'Engraving', 'Tiny Words'];
+  // Dynamic step control helper
+  const getStepsConfig = () => {
+    if (bracelets.length === 0) return { steps: ['Design', 'Word', 'Charms'], maxSteps: 3 }; // Default while loading
+    const selectedBracelet = bracelets.find(b => b.id === customization.braceletStyle) || bracelets[0];
+    
+    // Check product category to determine which steps to show
+    const isNoWords = selectedBracelet?.category === 'No Words';
+    const isTinyWords = selectedBracelet?.category === 'Tiny Words';
+    
+    if (isNoWords) {
+      // No words products: skip letter step, keep charm step
+      return { steps: ['Design', 'Charms'], maxSteps: 2 };
+    } else if (isTinyWords) {
+      // Tiny words products: show letter step, skip charm step
+      return { steps: ['Design', 'Word'], maxSteps: 2 };
+    } else {
+      // All other products: show all steps
+      return { steps: ['Design', 'Word', 'Charms'], maxSteps: 3 };
+    }
+  };
   
-  // Dynamic categories from data
-  const dynamicCategories = loading ? [] : ['All', ...new Set(bracelets.map(b => b.category))].map(cat => 
-    cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')
-  );
+  const stepsConfig = getStepsConfig();
+  const steps = stepsConfig.steps;
+  const maxSteps = stepsConfig.maxSteps;
   
-  // Merge predefined and dynamic categories, remove duplicates
-  const categories = loading ? [] : [...new Set([...predefinedCategories, ...dynamicCategories])];
+  // Dynamic categories from WooCommerce API data
+  const categories = loading ? [] : ['All', ...new Set(bracelets.map(b => b.category))];
   const trendingWords = mockData.trendingWords; // Keep trending words from mock data
   const charmCategories = loading ? [] : ['All', ...new Set(charms.map(c => c.category))].map(cat => 
     cat.charAt(0).toUpperCase() + cat.slice(1).replace('-', ' ')
@@ -52,6 +69,7 @@ function App() {
   const [charmImageDimensions, setCharmImageDimensions] = useState({});
   const [isDragInProgress, setIsDragInProgress] = useState(false);
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(window.innerWidth <= 1024);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   useEffect(() => {
     const handleResize = () => setIsMobileOrTablet(window.innerWidth <= 1024);
@@ -65,6 +83,7 @@ function App() {
       setLoading(true);
       
       try {
+        console.log('App - isWordPressMode:', isWordPressMode);
         if (isWordPressMode) {
           // Fetch from WordPress API
           const [braceletsResponse, charmsResponse] = await Promise.all([
@@ -144,10 +163,14 @@ function App() {
         }));
         
         // Set the category to match the selected product
-        if (targetBracelet.category === 'collabs') {
+        if (targetBracelet.category === 'Collabs') {
           setSelectedCategory('Collabs');
-        } else if (targetBracelet.category === 'standard') {
+        } else if (targetBracelet.category === 'Standard') {
           setSelectedCategory('Standard');
+        } else if (targetBracelet.category === 'Tiny Words') {
+          setSelectedCategory('Tiny Words');
+        } else if (targetBracelet.category === 'No Words') {
+          setSelectedCategory('No Words');
         }
       } else {
         console.log('No matching bracelet found for product ID:', initialProductId);
@@ -155,15 +178,46 @@ function App() {
     }
   }, [loading, initialProductId, bracelets]);
   
-  // Organize bracelets by category
-  const braceletsByCategory = {
-    'All': bracelets,
-    'Standard': bracelets.filter(b => b.category === 'standard'),
-    'Collabs': bracelets.filter(b => b.category === 'collabs'),
-    'Limited Edition': bracelets.filter(b => b.category === 'limited-edition'),
-    'Engraving': bracelets.filter(b => b.category === 'engraving'),
-    'Tiny Words': bracelets.filter(b => b.category === 'tiny-words')
-  };
+  // Reset step when switching between product types with different step configurations
+  useEffect(() => {
+    if (currentStep > maxSteps) {
+      setCurrentStep(maxSteps);
+    }
+  }, [maxSteps, currentStep]);
+  
+  // Auto-select first letter color when bracelet changes or data loads
+  useEffect(() => {
+    if (!loading && bracelets.length > 0) {
+      const letterColors = getLetterColors();
+      if (letterColors.length > 0 && !letterColors.find(c => c.id === customization.letterColor)) {
+        // If current letter color is not available in the new bracelet's colors, select the first one
+        setCustomization(prev => ({
+          ...prev,
+          letterColor: letterColors[0].id
+        }));
+      } else if (letterColors.length > 0 && !customization.letterColor) {
+        // If no letter color is selected, select the first one
+        setCustomization(prev => ({
+          ...prev,
+          letterColor: letterColors[0].id
+        }));
+      }
+    }
+  }, [loading, bracelets, customization.braceletStyle]); // Trigger when loading ends, bracelets change, or bracelet style changes
+  
+  // Organize bracelets by category dynamically
+  const braceletsByCategory = {};
+  if (!loading) {
+    // Add 'All' category with all bracelets
+    braceletsByCategory['All'] = bracelets;
+    
+    // Dynamically create categories based on actual data
+    categories.forEach(category => {
+      if (category !== 'All') {
+        braceletsByCategory[category] = bracelets.filter(b => b.category === category);
+      }
+    });
+  }
 
   // Organize charms by category
   const charmsByCategory = {
@@ -175,13 +229,22 @@ function App() {
 
   // Character validation (for allowed characters and length)
   const isValidCharacters = (text) => {
-    const allowedChars = /^[a-zA-Z0-9:)\<3!#&:\s]*$/;
-    return allowedChars.test(text) && text.length <= 13;
+    const selectedBracelet = getSelectedBracelet();
+    const isTinyWords = selectedBracelet && selectedBracelet.category === 'Tiny Words';
+    
+    // Different regex patterns for tiny_words vs other products
+    const allowedChars = isTinyWords 
+      ? /^[a-zA-Z0-9:)\<3!#&:]*$/      // No spaces for Tiny Words
+      : /^[a-zA-Z0-9:)\<3!#&:\s]*$/;   // Allow spaces for others
+      
+    const maxLength = maxSteps === 2 ? 10 : 13; // Tiny words: 10, others: 13
+    return allowedChars.test(text) && text.length <= maxLength;
   };
 
   // Final validation (for completed words)
   const isValidWord = (text) => {
-    return text === '' || (text.length >= 2 && text.length <= 13 && isValidCharacters(text));
+    const maxLength = maxSteps === 2 ? 10 : 13; // Tiny words: 10, others: 13
+    return text !== '' || (text.length >= 2 && text.length <= maxLength && isValidCharacters(text));
   };
 
   // Get selected bracelet data
@@ -216,11 +279,30 @@ function App() {
   };
 
   // Get letter image path for pre-rendered positioning (updated for direct key access)
-  const getCenteredBraceletPositions = (wordLength) => {
-    // Position 7 is center. Pattern based on your specification:
+  const getCenteredBraceletPositions = (wordLength, isTinyWords = false) => {
+    if (isTinyWords) {
+      // Tiny Words: Center around positions 5-6 (max 10 positions available)
+      // Even numbers: Start from 5,6 and expand outward  
+      // Odd numbers: Center on 5 and expand both ways
+      const tinyWordsPositionMaps = {
+        1: [5],
+        2: [5, 6],                           // Start 5,6
+        3: [4, 5, 6],                        // Center on 5: add 4 before
+        4: [4, 5, 6, 7],                     // From 5,6 → add 4 before, 7 after  
+        5: [3, 4, 5, 6, 7],                  // From 4,5,6 → add 3 before, 7 after
+        6: [3, 4, 5, 6, 7, 8],               // From 4,5,6,7 → add 3 before, 8 after
+        7: [2, 3, 4, 5, 6, 7, 8],            // From 3,4,5,6,7 → add 2 before, 8 after
+        8: [2, 3, 4, 5, 6, 7, 8, 9],         // From 3,4,5,6,7,8 → add 2 before, 9 after
+        9: [1, 2, 3, 4, 5, 6, 7, 8, 9],      // From 2,3,4,5,6,7,8 → add 1 before, 9 after
+        10: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] // All positions 1-10
+      };
+      return tinyWordsPositionMaps[wordLength] || [5];
+    }
+    
+    // Standard Products: Center around positions 7-8 (13 positions available)
     // Even numbers: Start from 7,8 and expand outward  
     // Odd numbers: Center on 7 and expand both ways
-    const positionMaps = {
+    const standardPositionMaps = {
       1: [7],
       2: [7, 8],                           // Start 7,8
       3: [6, 7, 8],                        // Center on 7: add 6 before
@@ -236,7 +318,7 @@ function App() {
       13: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13] // All positions
     };
     
-    return positionMaps[wordLength] || [7];
+    return standardPositionMaps[wordLength] || [7];
   };
 
   const getSpaceStoneImagePath = (braceletType, braceletPosition, totalCharCount) => {
@@ -272,13 +354,16 @@ function App() {
   };
 
   const getLetterImagePath = (letter, letterPosition, totalCharCount, letterColor, isTrailingSpace = false) => {
-    // Get centered positions for this word length
-    const centeredPositions = getCenteredBraceletPositions(totalCharCount);
+    // Check if this is a Tiny Words product for positioning
+    const selectedBracelet = getSelectedBracelet();
+    const isTinyWords = selectedBracelet && selectedBracelet.category === 'Tiny Words';
+    
+    // Get centered positions for this word length with correct positioning logic
+    const centeredPositions = getCenteredBraceletPositions(totalCharCount, isTinyWords);
     const actualBraceletPosition = centeredPositions[letterPosition]; // letterPosition is 0-indexed
     
     // Handle spaces with position-specific stone images
     if (letter === ' ') {
-      const selectedBracelet = getSelectedBracelet();
       return getSpaceStoneImagePath(selectedBracelet.id, actualBraceletPosition, totalCharCount);
     }
     
@@ -297,7 +382,13 @@ function App() {
     
     // Use O format for odd word lengths, E format for even word lengths
     const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // O for odd word length, E for even word length
-    return `https://res.cloudinary.com/drvnwq9bm/image/upload/w_915,f_auto/customizer-v2/colors/${colorCode}/${letter.toUpperCase()}/${colorCode}-${letter.toUpperCase()}-${formatCode}-${urlPosition}.png`;
+    
+    // Use different base URL for Tiny Words products
+    const baseUrl = isTinyWords 
+      ? 'https://res.cloudinary.com/drvnwq9bm/image/upload/w_915,f_auto/customizer-v2/types/necklaces/colors'
+      : 'https://res.cloudinary.com/drvnwq9bm/image/upload/w_915,f_auto/customizer-v2/colors';
+    
+    return `${baseUrl}/${colorCode}/${letter.toUpperCase()}/${colorCode}-${letter.toUpperCase()}-${formatCode}-${urlPosition}.png`;
   };
 
   // Process word for display (handle spaces as stone separators)
@@ -314,10 +405,43 @@ function App() {
 
   // Get letter colors from WordPress data or fallback to mock data
   const getLetterColors = () => {
-    if (isWordPressMode && wpData?.letterColors) {
-      return wpData.letterColors;
+    let colors = [];
+    
+    // First try to get product-specific letter colors from the selected bracelet
+    const selectedBracelet = getSelectedBracelet();
+    if (selectedBracelet && selectedBracelet.availableLetterColors && selectedBracelet.availableLetterColors.length > 0) {
+      // Filter to only enabled colors and ensure they have required properties
+      colors = selectedBracelet.availableLetterColors
+        .filter(color => color.enabled !== false)
+        .map(color => ({
+          id: color.id,
+          name: color.name || color.id.charAt(0).toUpperCase() + color.id.slice(1),
+          price: parseFloat(color.price) || 0,
+          color: color.color || '#ffffff'
+        }));
+      console.log('getLetterColors - returning product-specific colors:', colors);
     }
-    return mockData.letterColors;
+    // Fallback to global WordPress data  
+    else if (isWordPressMode && wpData?.letterColors) {
+      colors = wpData.letterColors;
+      console.log('getLetterColors - returning wpData colors:', colors);
+    }
+    // Final fallback to mock data
+    else {
+      colors = mockData.letterColors;
+      console.log('getLetterColors - returning mock data colors:', colors);
+    }
+    
+    // Deduplicate by id to prevent duplicates
+    const uniqueColors = colors.filter((color, index, self) => 
+      index === self.findIndex((c) => c.id === color.id)
+    );
+    
+    if (uniqueColors.length !== colors.length) {
+      console.warn('getLetterColors - Found duplicate colors, removed:', colors.length - uniqueColors.length);
+    }
+    
+    return uniqueColors;
   };
 
   // Calculate total price
@@ -427,17 +551,30 @@ function App() {
 
   // Helper function to generate charm position image path
   const getCharmPositionImagePath = (charmName, position) => {
+    // Get the current bracelet to determine if it's a NoWords product
+    const selectedBracelet = getSelectedBracelet();
+    const isNoWords = selectedBracelet && selectedBracelet.category === 'No Words';
+    
     // Find the charm in our data to get position images
     const charm = charms.find(c => c.name === charmName || c.id === charmName);
-    if (charm && charm.positionImages && charm.positionImages[position + 1]) {
-      // Use position image from WooCommerce if available
-      return charm.positionImages[position + 1];
+    
+    if (charm) {
+      // Use NoWords position images for No Words products
+      if (isNoWords && charm.noWordsPositionImages && charm.noWordsPositionImages[position + 1]) {
+        console.log(`Using WordPress NoWords position image for charm ${charmName} at position ${position + 1}: ${charm.noWordsPositionImages[position + 1]}`);
+        return charm.noWordsPositionImages[position + 1];
+      }
+      // Use regular position images for other products
+      else if (!isNoWords && charm.positionImages && charm.positionImages[position + 1]) {
+        console.log(`Using WordPress position image for charm ${charmName} at position ${position + 1}: ${charm.positionImages[position + 1]}`);
+        return charm.positionImages[position + 1];
+      }
     }
     
     // Fallback to constructed path for backward compatibility
     const folderName = charmName.toLowerCase();
     const positionNumber = position + 1;
-    const imagePath = `images/charms/${folderName}/${charmName.charAt(0).toUpperCase() + charmName.slice(1).toLowerCase()}_POS_${positionNumber.toString().padStart(2, '0')}.webp`;
+    const imagePath = `charms/${folderName}/${charmName.charAt(0).toUpperCase() + charmName.slice(1).toLowerCase()}_POS_${positionNumber.toString().padStart(2, '0')}.webp`;
     return getImageUrl(imagePath);
   };
 
@@ -452,38 +589,38 @@ function App() {
       },
       // Position 2
       {
-        right: '7%',
+        right: '27%', //7
         top: '35%',
         opacity: 1
       },
       // Position 3
       {
-        right: '15%',
+        right: '65%', // 15
         top: '-8%',
         opacity: 1
       },
       // Position 4
       {
-        bottom: '8%',
-        left: '-40%',
+        bottom: '28%', //8%
+        left: '-70%', // -40%
         opacity: 1
       },
       // Position 5
       {
-        left: '12%',
-        bottom: '3%',
+        left: '52%', //12
+        bottom: '13%', //3
         opacity: 1
       },
       // Position 6 (mirrored from position 4)
       {
-        bottom: '8%',
-        right: '-40%',
+        bottom: '-28%', //8
+        right: '-75%', // -40
         opacity: 1
       },
       // Position 7 (mirrored from position 3)
       {
-        left: '15%',
-        top: '-8%',
+        left: '45%', //15
+        top: '-8%', 
         opacity: 1
       },
       // Position 8 (mirrored from position 2)
@@ -575,7 +712,7 @@ function App() {
 
   if (loading) {
     return (
-      <div className="App" style={{ 
+      <div className="bc-app" style={{ 
         display: 'flex', 
         justifyContent: 'center', 
         alignItems: 'center', 
@@ -605,8 +742,519 @@ function App() {
     );
   }
 
+  // Mobile layout render function
+  const renderMobileLayout = () => {
+    return (
+      <MobileLayout
+        currentStep={currentStep}
+        steps={steps}
+        onClose={isWordPressMode ? closeModal : undefined}
+        isReviewMode={isReviewMode}
+        onBackStep={() => {
+          if (isReviewMode) {
+            setIsReviewMode(false);
+            setCurrentStep(3); // Go back to Charms step
+          } else {
+            setCurrentStep(currentStep - 1);
+          }
+        }}
+        bottomPanelContent={
+          <div>
+            {!isReviewMode && currentStep === 1 && (
+              <DesignStep
+                categories={categories}
+                selectedCategory={selectedCategory}
+                setSelectedCategory={setSelectedCategory}
+                braceletsByCategory={braceletsByCategory}
+                customization={customization}
+                setCustomization={setCustomization}
+                formatPrice={formatPrice}
+              />
+            )}
+            
+            {!isReviewMode && isMobileOrTablet && currentStep === 2 && steps[1] === 'Word' && (
+              <WordStep
+                mockData={mockData}
+                customization={customization}
+                setCustomization={setCustomization}
+                isValidCharacters={isValidCharacters}
+                isValidWord={isValidWord}
+                trendingWords={trendingWords}
+                getImageUrl={getImageUrl}
+                letterColors={getLetterColors()}
+                formatPrice={formatPrice}
+                selectedBracelet={getSelectedBracelet()}
+              />
+            )}
+            
+            {!isReviewMode && currentStep === 2 && steps[1] === 'Charms' && (
+              <CharmsStep
+                charmCategories={charmCategories}
+                selectedCharmCategory={selectedCharmCategory}
+                setSelectedCharmCategory={setSelectedCharmCategory}
+                charmSearchQuery={charmSearchQuery}
+                setCharmSearchQuery={setCharmSearchQuery}
+                charmsByCategory={charmsByCategory}
+                customization={customization}
+                setCustomization={setCustomization}
+                hoveredCharm={hoveredCharm}
+                setHoveredCharm={setHoveredCharm}
+                handleDragStart={handleDragStart}
+                isCharmSummaryExpanded={isCharmSummaryExpanded}
+                setIsCharmSummaryExpanded={setIsCharmSummaryExpanded}
+                setIsDragInProgress={setIsDragInProgress}
+                formatPrice={formatPrice}
+                selectedBracelet={getSelectedBracelet()}
+              />
+            )}
+            
+            {!isReviewMode && currentStep === 3 && steps[2] === 'Charms' && (
+              <CharmsStep
+                charmCategories={charmCategories}
+                selectedCharmCategory={selectedCharmCategory}
+                setSelectedCharmCategory={setSelectedCharmCategory}
+                charmSearchQuery={charmSearchQuery}
+                setCharmSearchQuery={setCharmSearchQuery}
+                charmsByCategory={charmsByCategory}
+                customization={customization}
+                setCustomization={setCustomization}
+                hoveredCharm={hoveredCharm}
+                setHoveredCharm={setHoveredCharm}
+                handleDragStart={handleDragStart}
+                isCharmSummaryExpanded={isCharmSummaryExpanded}
+                setIsCharmSummaryExpanded={setIsCharmSummaryExpanded}
+                setIsDragInProgress={setIsDragInProgress}
+                formatPrice={formatPrice}
+                selectedBracelet={getSelectedBracelet()}
+              />
+            )}
+            
+            {isReviewMode && (
+              <div>
+                {/* Review Content - Mobile Optimized */}
+                <div style={{ marginBottom: '24px' }}>
+                  <h2 style={{ margin: '0 0 16px 0', fontSize: '20px', fontWeight: '600' }}>Your Custom Bracelet</h2>
+                  
+                  {/* Style Section */}
+                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Style</h3>
+                      <button 
+                        id="bc-style-edit-btn"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4F46E5',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                        onClick={() => {setIsReviewMode(false); setCurrentStep(1);}}>
+                        Edit
+                      </button>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                      <div style={{ 
+                        width: '60px', 
+                        height: '60px', 
+                        background: '#e5e7eb', 
+                        borderRadius: '50%',
+                        backgroundImage: `url(${getImageUrl(getSelectedBracelet().image)})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                      }}></div>
+                      <div>
+                        <div style={{ fontSize: '16px', fontWeight: '600' }}>{getSelectedBracelet().name}</div>
+                      </div>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '14px', fontWeight: '500', marginRight: '8px' }}>Size:</span>
+                      {(getSelectedBracelet().availableSizes || ['XS', 'S/M', 'M/L', 'L/XL']).map(size => (
+                        <button
+                          key={size}
+                          style={{
+                            padding: '6px 12px',
+                            margin: '0 4px',
+                            border: `1px solid ${customization.size.toUpperCase() === size ? '#FFB6C1' : '#e5e7eb'}`,
+                            borderRadius: '4px',
+                            background: customization.size.toUpperCase() === size ? '#FFB6C1' : 'white',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => setCustomization({...customization, size: size.toLowerCase()})}
+                        >
+                          {size}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Word Section - only show for products that have word step */}
+                  {steps.includes('Word') && (
+                  <div style={{ marginBottom: '20px', padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Word</h3>
+                      <button 
+                        id="bc-word-edit-btn"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4F46E5',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                        onClick={() => {setIsReviewMode(false); setCurrentStep(steps.indexOf('Word') + 1);}}>
+                        Edit
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '14px', marginBottom: '8px' }}>
+                      <strong>Letter Color:</strong> {customization.letterColor.charAt(0).toUpperCase() + customization.letterColor.slice(1)}
+                      {(() => {
+                        const letterColors = getLetterColors();
+                        const selectedLetterColor = letterColors.find(c => c.id === customization.letterColor);
+                        return selectedLetterColor && selectedLetterColor.price > 0 ? ` (+${formatPrice(selectedLetterColor.price)})` : '';
+                      })()}
+                    </div>
+                    <div style={{ fontSize: '14px', marginBottom: '12px' }}>
+                      <strong>Word:</strong> {customization.word}
+                    </div>
+                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      {customization.word.split('').map((letter, index) => {
+                        // Map letter color to URL code
+                        const colorMap = {
+                          'white': 'WL',
+                          'pink': 'PK', 
+                          'black': 'BL',
+                          'gold': 'GL'
+                        };
+                        
+                        const colorCode = colorMap[customization.letterColor] || 'WL';
+                        
+                        // Handle spaces - show empty space
+                        if (letter === ' ') {
+                          return (
+                            <div key={index} style={{
+                              width: '24px',
+                              height: '24px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}>
+                              {/* Empty space for actual space character */}
+                            </div>
+                          );
+                        }
+                        
+                        // Generate static letter block URL
+                        const letterImageUrl = `https://res.cloudinary.com/drvnwq9bm/image/upload/f_auto,q_auto,w_90/customizer-v2/types/statics/${colorCode}/${letter.toUpperCase()}.png`;
+                        
+                        return (
+                          <div key={index} style={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '2px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden'
+                          }}>
+                            <img 
+                              src={letterImageUrl}
+                              alt={letter}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain'
+                              }}
+                              onError={(e) => {
+                                // Fallback to text if image fails to load
+                                e.target.style.display = 'none';
+                                e.target.parentElement.innerHTML = `<div style="width: 24px; height: 24px; background: #e5e7eb; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600;">${letter}</div>`;
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  )}
+                  
+                  {/* Charms Section - only show for products that have charm step */}
+                  {steps.includes('Charms') && (
+                  <div style={{ padding: '16px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Charms ({customization.selectedCharms.length})</h3>
+                      <button 
+                        id="bc-charms-edit-btn"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4F46E5',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                        onClick={() => {setIsReviewMode(false); setCurrentStep(steps.indexOf('Charms') + 1);}}>
+                        {customization.selectedCharms.length > 0 ? 'Edit' : 'Add'}
+                      </button>
+                    </div>
+                    {customization.selectedCharms.length > 0 ? (
+                      customization.selectedCharms.map((charm, index) => (
+                        <div key={`mobile-review-charm-${charm.id}-${index}`} style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '8px 0',
+                          borderBottom: index < customization.selectedCharms.length - 1 ? '1px solid #e5e7eb' : 'none'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ 
+                              width: '32px', 
+                              height: '32px', 
+                              borderRadius: '6px',
+                              backgroundImage: `url(${getImageUrl(charm.image)})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center'
+                            }}></div>
+                            <div style={{ fontSize: '14px', fontWeight: '500' }}>{charm.name}</div>
+                          </div>
+                          <div style={{ fontSize: '14px', fontWeight: '600' }}>{formatPrice(charm.price)}</div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ fontSize: '14px', color: '#6b7280', fontStyle: 'italic' }}>No charms selected</div>
+                    )}
+                  </div>
+                  )}
+                  
+                  {/* Total */}
+                  <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#4F46E5', borderRadius: '8px', color: 'white' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: '16px', fontWeight: '600' }}>Total</span>
+                      <span style={{ fontSize: '20px', fontWeight: '700' }}>{formatPrice(calculateTotal())}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        }
+        renderBottomButton={() => (
+          currentStep === maxSteps && steps[maxSteps - 1] === 'Charms' && !isReviewMode ? (
+            // Mobile: Split layout with Your Charms on top, REVIEW button below
+            <div>
+              {/* Your Charms Section */}
+              <div style={{ 
+                background: '#f8f9fa',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                marginBottom: '12px',
+                border: '1px solid #e5e7eb',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer'
+              }}
+              onClick={() => setIsCharmSummaryExpanded(!isCharmSummaryExpanded)}>
+                <span style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600',
+                  color: '#111827'
+                }}>
+                  Your Charms ({customization.selectedCharms.length})
+                </span>
+                <div style={{ 
+                  transform: isCharmSummaryExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s ease',
+                  color: '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6,9 12,15 18,9"></polyline>
+                  </svg>
+                </div>
+              </div>
+              
+              {/* REVIEW Button */}
+              <button
+                style={{
+                  width: '100%',
+                  background: '#4F46E5',
+                  color: 'white',
+                  border: 'none',
+                  padding: '16px',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  cursor: 'pointer'
+                }}
+                onClick={() => setIsReviewMode(true)}
+              >
+                REVIEW
+              </button>
+            </div>
+          ) : (
+            <button
+              id="bc-next-button"
+              style={{
+                width: '100%',
+                background: (currentStep === 2 && steps[1] === 'Word' && !isValidWord(customization.word)) || isAddingToCart
+                  ? '#9ca3af' 
+                  : '#4F46E5',
+                color: 'white',
+                border: 'none',
+                padding: '16px',
+                borderRadius: '8px',
+                fontWeight: '600',
+                fontSize: '16px',
+                cursor: (currentStep === 2 && steps[1] === 'Word' && !isValidWord(customization.word)) || isAddingToCart
+                  ? 'not-allowed' 
+                  : 'pointer',
+                position: 'relative'
+              }}
+              disabled={(currentStep === 2 && steps[1] === 'Word' && !isValidWord(customization.word)) || isAddingToCart}
+            onClick={async () => {
+              if (isReviewMode) {
+                if (isWordPressMode) {
+                  try {
+                    // Set loading state and disable app
+                    setIsAddingToCart(true);
+                    
+                    // WordPress mode - add to WooCommerce cart
+                    const selectedBracelet = getSelectedBracelet();
+                    const productData = {
+                      product_id: selectedBracelet.woocommerce_id || selectedBracelet.id,
+                      quantity: quantity,
+                      variation_data: {
+                        bracelet_style: customization.braceletStyle,
+                        letter_color: customization.letterColor,
+                        size: customization.size
+                      }
+                    };
+                    
+                    const customizationData = {
+                      bracelet_style: customization.braceletStyle,
+                      word: customization.word,
+                      letter_color: customization.letterColor,
+                      selected_charms: customization.selectedCharms,
+                      size: customization.size,
+                      quantity: quantity,
+                      total_price: calculateTotal()
+                    };
+                    
+                    const result = await addToCart(productData, customizationData);
+                    if (result) {
+                      // Redirect to cart page
+                      const cartUrl = window.BraceletCustomizerConfig?.woocommerce?.cartUrl || '/cart';
+                      window.location.href = cartUrl;
+                    } else {
+                      setIsAddingToCart(false);
+                      alert('Error adding to cart. Please try again.');
+                    }
+                  } catch (error) {
+                    setIsAddingToCart(false);
+                    alert('Error adding to cart. Please try again.');
+                    console.error('Add to cart error:', error);
+                  }
+                } else {
+                  alert(`Add to Cart ${formatPrice(calculateTotal())}`);
+                }
+              } else if (currentStep < maxSteps) {
+                if (steps[currentStep - 1] === 'Word' && !isValidWord(customization.word)) {
+                  return;
+                }
+                setCurrentStep(currentStep + 1);
+              } else {
+                setIsReviewMode(true);
+              }
+            }}
+          >
+              {isAddingToCart && isReviewMode 
+                ? 'ADDING TO CART...' 
+                : isReviewMode 
+                  ? `ADD TO CART • ${formatPrice(calculateTotal())}` 
+                  : 'NEXT'
+              }
+            </button>
+          )
+        )}
+      >
+        <BraceletPreview
+          customization={customization}
+          currentStep={currentStep}
+          isReviewMode={isReviewMode}
+          getBraceletImage={getBraceletImage}
+          processWordForDisplay={processWordForDisplay}
+          getLetterImagePath={getLetterImagePath}
+          handleDragOver={handleDragOver}
+          handleDrop={handleDrop}
+          removeCharmFromDropzone={removeCharmFromDropzone}
+          getCharmPositionImagePath={getCharmPositionImagePath}
+          getCharmPositionStyles={getCharmPositionStyles}
+          charmImageDimensions={charmImageDimensions}
+          handleDragStart={handleDragStart}
+          getCloseButtonPosition={getCloseButtonPosition}
+          isDragInProgress={isDragInProgress}
+          setIsDragInProgress={setIsDragInProgress}
+          selectedBracelet={getSelectedBracelet()}
+          getImageUrl={getImageUrl}
+          isMobile={true}
+        />
+      </MobileLayout>
+    );
+  };
+
   return (
-    <div className="App">
+    <div className="bc-app" style={{ 
+      position: 'relative',
+      pointerEvents: isAddingToCart ? 'none' : 'auto' 
+    }}>
+      {/* Loading Overlay */}
+      {isAddingToCart && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'auto'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px 32px',
+            borderRadius: '12px',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            <div style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f0f0f0',
+              borderTop: '4px solid #4F46E5',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}></div>
+            <div style={{
+              fontSize: '16px',
+              fontWeight: '600',
+              color: '#4F46E5'
+            }}>
+              Adding to cart...
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Data source indicator (development only) */}
       {process.env.NODE_ENV === 'development' && (
         <div style={{
@@ -624,15 +1272,19 @@ function App() {
         </div>
       )}
       
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: isMobileOrTablet ? '1fr' : '65% 35%',
-        gap: isMobileOrTablet ? '30px' : '0',
-        height: isMobileOrTablet ? 'auto' : '100vh',
-        minHeight: '100vh',
-        maxHeight: isMobileOrTablet ? 'none' : '100vh',
-        overflow: isMobileOrTablet ? 'visible' : 'hidden'
-      }}>
+      {/* Render Mobile Layout for Mobile/Tablet, Desktop Layout for Desktop */}
+      {isMobileOrTablet ? (
+        renderMobileLayout()
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '65% 35%',
+          gap: '0',
+          height: '100vh',
+          minHeight: '100vh',
+          maxHeight: '100vh',
+          overflow: 'hidden'
+        }}>
         {/* Preview Panel */}
         <div style={{ 
           display: 'flex', 
@@ -642,7 +1294,7 @@ function App() {
         }}>
           <StepNavigation
             currentStep={currentStep}
-            steps={steps}
+            steps={steps.slice(0, maxSteps)}
             onClose={isMobileOrTablet ? () => {
               if (isWordPressMode) {
                 closeModal();
@@ -695,6 +1347,7 @@ function App() {
             <div style={{ width: '80px' }}>
               {(currentStep > 1 || isReviewMode) && (
                 <button
+                  className='bc-back-button'
                   style={{
                     background: 'none',
                     border: 'none',
@@ -718,15 +1371,20 @@ function App() {
             </div>
 
             {!isMobileOrTablet && (
-              <div style={{ fontSize: '12px', fontWeight: '600', textAlign: 'center' }}>
-                <div>little words</div>
-                <div>project</div>
+              <div className='bc-site-name' style={{ fontSize: '12px', fontWeight: '600', textAlign: 'center' }}>
+                <div>{window.BraceletCustomizerConfig?.siteName || 'MUMU'}</div>
               </div>
             )}
 
             {!isMobileOrTablet && (
               <button
-                style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer' }}
+                id="bc-modal-close-btn"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer'
+                }}
                 onClick={() => {
                   if (isWordPressMode) {
                     closeModal();
@@ -761,9 +1419,10 @@ function App() {
                     marginBottom: '24px'
                   }}>
                     <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600' }}>Your Custom Bracelet</h2>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div className='bc-qty-wrapper' style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ fontSize: '14px', fontWeight: '500' }}>Qty:</span>
                       <select
+                        className='bc-qty-select'
                         value={quantity}
                         onChange={(e) => setQuantity(parseInt(e.target.value))}
                         style={{
@@ -784,15 +1443,17 @@ function App() {
                   <div style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Style</h3>
-                      <button style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: '#4F46E5', 
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                      }}
-                      onClick={() => {setIsReviewMode(false); setCurrentStep(1);}}>
+                      <button 
+                        id="bc-desktop-style-edit-btn"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4F46E5',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                        onClick={() => {setIsReviewMode(false); setCurrentStep(1);}}>
                         Edit
                       </button>
                     </div>
@@ -834,19 +1495,22 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Lettering Section */}
+                  {/* Lettering Section - only show for products that have word step */}
+                  {steps.includes('Word') && (
                   <div style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Lettering</h3>
-                      <button style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: '#4F46E5', 
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                      }}
-                      onClick={() => {setIsReviewMode(false); setCurrentStep(2);}}>
+                      <button 
+                        id="bc-desktop-lettering-edit-btn"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4F46E5',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                        onClick={() => {setIsReviewMode(false); setCurrentStep(steps.indexOf('Word') + 1);}}>
                         Edit
                       </button>
                     </div>
@@ -920,20 +1584,24 @@ function App() {
                       })}
                     </div>
                   </div>
+                  )}
 
-                  {/* Charms Section */}
+                  {/* Charms Section - only show for products that have charm step */}
+                  {steps.includes('Charms') && (
                   <div style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Charms ({customization.selectedCharms.length})</h3>
-                      <button style={{ 
-                        background: 'none', 
-                        border: 'none', 
-                        color: '#4F46E5', 
-                        fontSize: '14px',
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                      }}
-                      onClick={() => {setIsReviewMode(false); setCurrentStep(3);}}>
+                      <button 
+                        id="bc-desktop-charms-edit-btn"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#4F46E5',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                        onClick={() => {setIsReviewMode(false); setCurrentStep(steps.indexOf('Charms') + 1);}}>
                         {customization.selectedCharms.length > 0 ? 'Edit' : 'Add'}
                       </button>
                     </div>
@@ -993,6 +1661,7 @@ function App() {
                       </div>
                     )}
                   </div>
+                  )}
                 </div>
               )}
               
@@ -1008,7 +1677,7 @@ function App() {
                 />
               )}
 
-              {!isReviewMode && currentStep === 2 && (
+              {!isReviewMode && !isMobileOrTablet && currentStep === 2 && steps[1] === 'Word' && (
                 <WordStep
                   mockData={mockData}
                   customization={customization}
@@ -1023,7 +1692,7 @@ function App() {
                 />
               )}
 
-              {!isReviewMode && currentStep === 3 && (
+              {!isReviewMode && currentStep === 2 && steps[1] === 'Charms' && (
                 <CharmsStep
                   charmCategories={charmCategories}
                   selectedCharmCategory={selectedCharmCategory}
@@ -1040,6 +1709,28 @@ function App() {
                   setIsCharmSummaryExpanded={setIsCharmSummaryExpanded}
                   setIsDragInProgress={setIsDragInProgress}
                   formatPrice={formatPrice}
+                  selectedBracelet={getSelectedBracelet()}
+                />
+              )}
+
+              {!isReviewMode && currentStep === 3 && steps[2] === 'Charms' && (
+                <CharmsStep
+                  charmCategories={charmCategories}
+                  selectedCharmCategory={selectedCharmCategory}
+                  setSelectedCharmCategory={setSelectedCharmCategory}
+                  charmSearchQuery={charmSearchQuery}
+                  setCharmSearchQuery={setCharmSearchQuery}
+                  charmsByCategory={charmsByCategory}
+                  customization={customization}
+                  setCustomization={setCustomization}
+                  hoveredCharm={hoveredCharm}
+                  setHoveredCharm={setHoveredCharm}
+                  handleDragStart={handleDragStart}
+                  isCharmSummaryExpanded={isCharmSummaryExpanded}
+                  setIsCharmSummaryExpanded={setIsCharmSummaryExpanded}
+                  setIsDragInProgress={setIsDragInProgress}
+                  formatPrice={formatPrice}
+                  selectedBracelet={getSelectedBracelet()}
                 />
               )}
             </div>
@@ -1054,7 +1745,7 @@ function App() {
             backgroundColor: 'white',
             marginTop: 'auto'
           }}>
-            {currentStep === 3 && !isReviewMode ? (
+            {currentStep === maxSteps && steps[maxSteps - 1] === 'Charms' && !isReviewMode ? (
               // Step 3: Split layout with Your Charms on left, REVIEW button on right
               <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
                 {/* Your Charms Section */}
@@ -1111,9 +1802,10 @@ function App() {
             ) : (
               // Other steps: Full width button
               <button
+                id="bc-desktop-next-button"
                 style={{
                   width: '100%',
-                  background: (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) 
+                  background: (currentStep === 2 && steps[1] === 'Word' && !isValidWord(customization.word)) || isAddingToCart
                     ? '#9ca3af' 
                     : '#4F46E5',
                   color: 'white',
@@ -1121,51 +1813,61 @@ function App() {
                   padding: '16px',
                   borderRadius: '8px',
                   fontWeight: '600',
-                  cursor: (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) 
+                  cursor: (currentStep === 2 && steps[1] === 'Word' && !isValidWord(customization.word)) || isAddingToCart
                     ? 'not-allowed' 
                     : 'pointer'
                 }}
-                disabled={currentStep === 2 && (!customization.word || customization.word.trim().length < 2)}
+                disabled={(currentStep === 2 && steps[1] === 'Word' && !isValidWord(customization.word)) || isAddingToCart}
                 onClick={async () => {
                   if (isReviewMode) {
                     if (isWordPressMode) {
-                      // WordPress mode - add to WooCommerce cart
-                      const selectedBracelet = getSelectedBracelet();
-                      const productData = {
-                        product_id: selectedBracelet.woocommerce_id || selectedBracelet.id,
-                        quantity: quantity,
-                        variation_data: {
+                      try {
+                        // Set loading state and disable app
+                        setIsAddingToCart(true);
+                        
+                        // WordPress mode - add to WooCommerce cart
+                        const selectedBracelet = getSelectedBracelet();
+                        const productData = {
+                          product_id: selectedBracelet.woocommerce_id || selectedBracelet.id,
+                          quantity: quantity,
+                          variation_data: {
+                            bracelet_style: customization.braceletStyle,
+                            letter_color: customization.letterColor,
+                            size: customization.size
+                          }
+                        };
+                        
+                        const customizationData = {
                           bracelet_style: customization.braceletStyle,
+                          word: customization.word,
                           letter_color: customization.letterColor,
-                          size: customization.size
+                          selected_charms: customization.selectedCharms,
+                          size: customization.size,
+                          quantity: quantity,
+                          total_price: calculateTotal()
+                        };
+                        
+                        const result = await addToCart(productData, customizationData);
+                        if (result) {
+                          // Redirect to cart page
+                          const cartUrl = window.BraceletCustomizerConfig?.woocommerce?.cartUrl || '/cart';
+                          window.location.href = cartUrl;
+                        } else {
+                          setIsAddingToCart(false);
+                          alert('Error adding to cart. Please try again.');
                         }
-                      };
-                      
-                      const customizationData = {
-                        bracelet_style: customization.braceletStyle,
-                        word: customization.word,
-                        letter_color: customization.letterColor,
-                        selected_charms: customization.selectedCharms,
-                        size: customization.size,
-                        quantity: quantity,
-                        total_price: calculateTotal()
-                      };
-                      
-                      const result = await addToCart(productData, customizationData);
-                      if (result) {
-                        // Success - could show notification or redirect
-                        // console.log('Added to cart successfully', result);
-                        closeModal(); // Close the customizer
-                      } else {
+                      } catch (error) {
+                        setIsAddingToCart(false);
                         alert('Error adding to cart. Please try again.');
+                        console.error('Add to cart error:', error);
                       }
                     } else {
                       // Standalone mode - show alert
                       alert(`Add to Cart ${formatPrice(calculateTotal())}`);
                     }
-                  } else if (currentStep < 3) {
-                    // Don't advance to step 3 if on step 2 and word is invalid
-                    if (currentStep === 2 && (!customization.word || customization.word.trim().length < 2)) {
+                  } else if (currentStep < maxSteps) {
+                    // Don't advance to next step if on word step and word is invalid
+                    if (steps[currentStep - 1] === 'Word' && !isValidWord(customization.word)) {
                       return;
                     }
                     setCurrentStep(currentStep + 1);
@@ -1174,16 +1876,22 @@ function App() {
                   }
                 }}
               >
-                {isReviewMode ? `ADD TO CART ${formatPrice(calculateTotal())}` : (currentStep < 3 ? 'NEXT' : 'REVIEW')}
+                {isAddingToCart && isReviewMode 
+                  ? 'ADDING TO CART...' 
+                  : isReviewMode 
+                    ? `ADD TO CART ${formatPrice(calculateTotal())}` 
+                    : (currentStep < maxSteps ? 'NEXT' : 'REVIEW')
+                }
               </button>
             )}
           </div>
         </div>
       </div>
+      )}
       
       {/* Expandable Charms Summary Overlay */}
-      {currentStep === 3 && !isReviewMode && isCharmSummaryExpanded && customization.selectedCharms.length > 0 && (
-        <div style={{
+      {currentStep === maxSteps && steps[maxSteps - 1] === 'Charms' && !isReviewMode && isCharmSummaryExpanded && customization.selectedCharms.length > 0 && (
+        <div id='bc-charm-summary-overlay' style={{
           position: 'fixed',
           bottom: '100px',
           right: '24px',

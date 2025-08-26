@@ -15,20 +15,25 @@ const CharmsStep = ({
   isCharmSummaryExpanded,
   setIsCharmSummaryExpanded,
   setIsDragInProgress,
-  formatPrice
+  formatPrice,
+  selectedBracelet
 }) => {
+  // Determine max charms based on product type
+  const isNoWordsMode = selectedBracelet && selectedBracelet.category === 'No Words';
+  const maxCharms = isNoWordsMode ? 7 : 9;
   return (
     <div>
       <div style={{ marginBottom: '24px' }}>
-        <h3 style={{ margin: 0, marginBottom: '4px' }}>Charms <span style={{ fontWeight: '400', color: '#9ca3af' }}>(Optional Add On)</span></h3>
+        <h3 className='bc-charms-label' style={{ margin: 0, marginBottom: '4px' }}>Charms <span style={{ fontWeight: '400', color: '#9ca3af' }}>(Optional Add On)</span></h3>
       </div>
 
-      <div style={{ marginBottom: '20px', position: 'relative' }}>
+      <div className='bc-charms-search' style={{ marginBottom: '20px', position: 'relative' }}>
         <input
           type="text"
           placeholder="Search"
           value={charmSearchQuery}
           onChange={(e) => setCharmSearchQuery(e.target.value)}
+          className='bc-charms-search-input'
           style={{
             width: '100%',
             padding: '12px 16px 12px 40px',
@@ -45,19 +50,21 @@ const CharmsStep = ({
           transform: 'translateY(-50%)',
           color: '#9ca3af'
         }}>🔍</div>
-        <button style={{
-          position: 'absolute',
-          right: '8px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          background: '#FFB6C1',
-          border: 'none',
-          borderRadius: '6px',
-          padding: '6px 12px',
-          fontSize: '12px',
-          fontWeight: '500',
-          cursor: 'pointer'
-        }}>
+        <button 
+          id="bc-search-clear-btn"
+          style={{
+            position: 'absolute',
+            right: '8px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            background: '#FFB6C1',
+            border: 'none',
+            borderRadius: '6px',
+            padding: '6px 12px',
+            fontSize: '12px',
+            fontWeight: '500',
+            cursor: 'pointer'
+          }}>
           FILTER & SORT
         </button>
       </div>
@@ -75,6 +82,8 @@ const CharmsStep = ({
           {charmCategories.map(category => (
             <button
               key={category}
+              id='bc-charm-category-{{category}}'
+              className='bc-charm-category-button'
               style={{
                 padding: '8px 16px',
                 border: 'none',
@@ -104,6 +113,7 @@ const CharmsStep = ({
           )
           .map(charm => (
           <div
+            className='bc-charm-card'
             key={charm.id}
             style={{
               padding: '16px',
@@ -124,10 +134,11 @@ const CharmsStep = ({
             onClick={() => {
               if (!charm.isSoldOut) {
                 const currentCount = customization.selectedCharms.filter(c => c.id === charm.id).length;
-                if (currentCount < 9) {
-                  // Find first empty dropzone (0-8, left to right)
+                if (currentCount < maxCharms) {
+                  // Find first empty dropzone based on product type
                   const occupiedDropzones = customization.selectedCharms.map(c => c.dropzoneIndex).filter(idx => idx !== undefined);
-                  const firstEmptyDropzone = [0, 1, 2, 3, 4, 5, 6, 7, 8].find(index => !occupiedDropzones.includes(index));
+                  const availableDropzones = isNoWordsMode ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 2, 3, 4, 5, 6, 7, 8];
+                  const firstEmptyDropzone = availableDropzones.find(index => !occupiedDropzones.includes(index));
                   
                   if (firstEmptyDropzone !== undefined) {
                     const charmWithPosition = {
