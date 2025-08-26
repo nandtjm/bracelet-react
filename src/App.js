@@ -8,6 +8,7 @@ import WordStep from './components/WordStep';
 import CharmsStep from './components/CharmsStep';
 import MobileLayout from './components/MobileLayout';
 import useWordPressIntegration from './hooks/useWordPressIntegration';
+import { toPng } from 'html-to-image';
 
 function App() {
   // WordPress integration
@@ -710,6 +711,44 @@ function App() {
     });
   }, [customization.selectedCharms]); // Removed charms dependency to prevent infinite loop
 
+  // Screenshot capture function
+  const captureScreenshot = async () => {
+    try {
+      // Find the bracelet preview container
+      const previewElement = document.querySelector('.bc-bracelet-preview-container');
+      if (!previewElement) {
+        console.error('Preview element not found');
+        return null;
+      }
+
+      // Capture the screenshot
+      const dataUrl = await toPng(previewElement, {
+        quality: 1.0,
+        pixelRatio: 2, // For higher quality on retina displays
+        backgroundColor: '#f9fafb', // Match the background color
+        width: previewElement.offsetWidth,
+        height: previewElement.offsetHeight
+      });
+
+      // Create a download link and trigger download
+      const link = document.createElement('a');
+      const selectedBracelet = getSelectedBracelet();
+      const fileName = `custom-bracelet-${selectedBracelet.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
+      
+      link.download = fileName;
+      link.href = dataUrl;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      console.log('Screenshot captured and downloaded:', fileName);
+      return dataUrl;
+    } catch (error) {
+      console.error('Error capturing screenshot:', error);
+      return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="bc-app" style={{ 
@@ -1090,7 +1129,10 @@ function App() {
                   fontSize: '16px',
                   cursor: 'pointer'
                 }}
-                onClick={() => setIsReviewMode(true)}
+                onClick={async () => {
+                  await captureScreenshot();
+                  setIsReviewMode(true);
+                }}
               >
                 REVIEW
               </button>
@@ -1794,7 +1836,10 @@ function App() {
                     fontSize: '16px',
                     minWidth: '120px'
                   }}
-                  onClick={() => setIsReviewMode(true)}
+                  onClick={async () => {
+                    await captureScreenshot();
+                    setIsReviewMode(true);
+                  }}
                 >
                   REVIEW
                 </button>
