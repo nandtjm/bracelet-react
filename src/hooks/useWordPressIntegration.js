@@ -126,7 +126,7 @@ export const useWordPressIntegration = () => {
   /**
    * Add to WooCommerce cart
    */
-  const addToCart = async (productData, customizationData) => {
+  const addToCart = async (productData, customizationData, capturedScreenshot = null) => {
     if (!isWordPressMode || !wpData) {
       return null;
     }
@@ -139,8 +139,14 @@ export const useWordPressIntegration = () => {
         throw new Error('Failed to save customization before adding to cart');
       }
 
-      // Capture and upload preview image
-      const imageUrl = await uploadPreviewImage(savedCustomization.id);
+      // Use captured screenshot if available, otherwise capture preview image
+      let imageUrl;
+      if (capturedScreenshot) {
+        imageUrl = await uploadScreenshotImage(savedCustomization.id, capturedScreenshot);
+      } else {
+        imageUrl = await uploadPreviewImage(savedCustomization.id);
+      }
+      
       if (imageUrl) {
         // Add image URL to product data
         productData.custom_image_url = imageUrl;
@@ -238,6 +244,56 @@ export const useWordPressIntegration = () => {
       modal.classList.remove('active');
       modal.setAttribute('aria-hidden', 'true');
       document.body.style.overflow = '';
+    }
+  };
+
+  /**
+   * Upload captured screenshot image
+   */
+  const uploadScreenshotImage = async (customizationId, screenshotDataUrl) => {
+    if (!isWordPressMode || !wpData) {
+      console.log('Not in WordPress mode or no wpData available');
+      return null;
+    }
+
+    console.log('Starting screenshot upload for customization ID:', customizationId);
+
+    try {
+      // Convert data URL to blob
+      const response = await fetch(screenshotDataUrl);
+      const blob = await response.blob();
+
+      // Create form data for upload
+      const formData = new FormData();
+      formData.append('action', 'upload_preview_image');
+      formData.append('nonce', wpData.nonce);
+      formData.append('customization_id', customizationId);
+      formData.append('image', blob, `custom-bracelet-${customizationId}.png`);
+
+      // Upload to WordPress
+      const uploadResponse = await fetch(wpData.ajaxUrl, {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload screenshot');
+      }
+
+      const result = await uploadResponse.json();
+      console.log('Screenshot upload response:', result);
+
+      if (result.success && result.data?.image_url) {
+        console.log('Screenshot uploaded successfully:', result.data.image_url);
+        return result.data.image_url;
+      } else {
+        console.error('Failed to upload screenshot:', result.data?.message || 'Unknown error');
+        return null;
+      }
+
+    } catch (err) {
+      console.error('Error in uploadScreenshotImage:', err);
+      return null;
     }
   };
 
@@ -493,7 +549,8 @@ export const useWordPressIntegration = () => {
     navigateToPage,
     closeModal,
     formatPrice,
-    uploadPreviewImage
+    uploadPreviewImage,
+    uploadScreenshotImage
   };
 };
 

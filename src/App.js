@@ -12,7 +12,7 @@ import { toPng } from 'html-to-image';
 
 function App() {
   // WordPress integration
-  const { isWordPressMode, isModalMode, initialProductId, getImageUrl, addToCart, closeModal, fetchBracelets, fetchCharms, formatPrice, wpData } = useWordPressIntegration();
+  const { isWordPressMode, isModalMode, initialProductId, getImageUrl, addToCart, closeModal, fetchBracelets, fetchCharms, formatPrice, wpData, uploadScreenshotImage } = useWordPressIntegration();
   
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -26,6 +26,9 @@ function App() {
     selectedCharms: [],
     size: 'xs'
   });
+  
+  // State to store captured screenshot for review page
+  const [capturedScreenshot, setCapturedScreenshot] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('All');
 
   // Dynamic step control helper
@@ -711,7 +714,7 @@ function App() {
     });
   }, [customization.selectedCharms]); // Removed charms dependency to prevent infinite loop
 
-  // Screenshot capture function
+  // Screenshot capture function - now stores temporarily instead of downloading
   const captureScreenshot = async () => {
     try {
       // Find the bracelet preview container
@@ -744,18 +747,9 @@ function App() {
         }
       });
 
-      // Create a download link and trigger download
-      const link = document.createElement('a');
-      const selectedBracelet = getSelectedBracelet();
-      const fileName = `custom-bracelet-${selectedBracelet.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
-      
-      link.download = fileName;
-      link.href = dataUrl;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      console.log('Screenshot captured and downloaded:', fileName);
+      // Store the screenshot temporarily for use on review page
+      setCapturedScreenshot(dataUrl);
+      console.log('Screenshot captured and stored for review page');
       return dataUrl;
     } catch (error) {
       console.error('Error capturing screenshot:', error);
@@ -771,21 +765,13 @@ function App() {
           filter: () => true // Include all elements in fallback
         });
         
-        const link = document.createElement('a');
-        const selectedBracelet = getSelectedBracelet();
-        const fileName = `custom-bracelet-${selectedBracelet.name.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`;
-        
-        link.download = fileName;
-        link.href = dataUrl;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-
-        console.log('Screenshot captured with fallback settings:', fileName);
+        // Store the fallback screenshot
+        setCapturedScreenshot(dataUrl);
+        console.log('Screenshot captured with fallback settings and stored for review page');
         return dataUrl;
       } catch (fallbackError) {
         console.error('Fallback screenshot also failed:', fallbackError);
-        alert('Unable to capture screenshot. Please try again or take a manual screenshot.');
+        alert('Unable to capture screenshot. Please try again.');
         return null;
       }
     }
@@ -939,8 +925,8 @@ function App() {
                         width: '60px', 
                         height: '60px', 
                         background: '#e5e7eb', 
-                        borderRadius: '50%',
-                        backgroundImage: `url(${getImageUrl(getSelectedBracelet().image)})`,
+                        borderRadius: '8px', // Changed from circle to rounded square for screenshot
+                        backgroundImage: `url(${capturedScreenshot || getImageUrl(getSelectedBracelet().image)})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                       }}></div>
@@ -1228,7 +1214,7 @@ function App() {
                       total_price: calculateTotal()
                     };
                     
-                    const result = await addToCart(productData, customizationData);
+                    const result = await addToCart(productData, customizationData, capturedScreenshot);
                     if (result) {
                       // Redirect to cart page
                       const cartUrl = window.BraceletCustomizerConfig?.woocommerce?.cartUrl || '/cart';
@@ -1546,8 +1532,8 @@ function App() {
                         width: '80px', 
                         height: '80px', 
                         background: '#e5e7eb', 
-                        borderRadius: '50%',
-                        backgroundImage: `url(${getImageUrl(getSelectedBracelet().image)})`,
+                        borderRadius: '8px', // Changed from circle to rounded square for screenshot
+                        backgroundImage: `url(${capturedScreenshot || getImageUrl(getSelectedBracelet().image)})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center',
                         flexShrink: 0
@@ -1934,7 +1920,7 @@ function App() {
                           total_price: calculateTotal()
                         };
                         
-                        const result = await addToCart(productData, customizationData);
+                        const result = await addToCart(productData, customizationData, capturedScreenshot);
                         if (result) {
                           // Redirect to cart page
                           const cartUrl = window.BraceletCustomizerConfig?.woocommerce?.cartUrl || '/cart';
