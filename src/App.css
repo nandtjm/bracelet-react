@@ -186,6 +186,12 @@ img {
 }
 
 @media (max-width: 768px) {
+  /* Hide section titles on mobile to save space */
+  .bc-letter-color-label,
+  .bc-charms-label {
+    display: none !important;
+  }
+  
   .bc-app > div {
     padding: 0px !important;
     gap: 15px !important;
