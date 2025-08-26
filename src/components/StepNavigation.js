@@ -59,7 +59,7 @@ const StepNavigation = ({ currentStep, steps, onClose }) => {
               fontSize: '14px',
               fontWeight: '500',
               background: currentStep === index + 1 
-                ? (step === 'Design' ? '#fef3c7' : step === 'Word' ? '#e0e7ff' : '#ddd6fe')
+                ? (step === 'Chains' ? '#fef3c7' : step === 'Word' ? '#e0e7ff' : '#ddd6fe')
                 : '#f3f4f6',
               color: currentStep === index + 1 ? '#374151' : '#9ca3af'
             }}

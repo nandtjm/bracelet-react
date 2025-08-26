@@ -29,7 +29,7 @@ function App() {
 
   // Dynamic step control helper
   const getStepsConfig = () => {
-    if (bracelets.length === 0) return { steps: ['Design', 'Word', 'Charms'], maxSteps: 3 }; // Default while loading
+    if (bracelets.length === 0) return { steps: ['Chains', 'Word', 'Charms'], maxSteps: 3 }; // Default while loading
     const selectedBracelet = bracelets.find(b => b.id === customization.braceletStyle) || bracelets[0];
     
     // Check product category to determine which steps to show
@@ -38,13 +38,13 @@ function App() {
     
     if (isNoWords) {
       // No words products: skip letter step, keep charm step
-      return { steps: ['Design', 'Charms'], maxSteps: 2 };
+      return { steps: ['Chains', 'Charms'], maxSteps: 2 };
     } else if (isTinyWords) {
       // Tiny words products: show letter step, skip charm step
-      return { steps: ['Design', 'Word'], maxSteps: 2 };
+      return { steps: ['Chains', 'Word'], maxSteps: 2 };
     } else {
       // All other products: show all steps
-      return { steps: ['Design', 'Word', 'Charms'], maxSteps: 3 };
+      return { steps: ['Chains', 'Word', 'Charms'], maxSteps: 3 };
     }
   };
   
