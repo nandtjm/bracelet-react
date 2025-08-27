@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDrag } from 'react-dnd';
 
 const DraggableCharm = ({
@@ -12,7 +12,7 @@ const DraggableCharm = ({
   className = '',
   disabled = false
 }) => {
-  const [{ isDragging }, drag, dragPreview] = useDrag(() => ({
+  const [{ isDragging }, drag, preview] = useDrag(() => ({
     type: 'CHARM',
     item: () => {
       const dragData = {
@@ -47,32 +47,41 @@ const DraggableCharm = ({
     canDrag: !disabled
   }), [charm, isFromGrid, currentDropzoneIndex, disabled]);
 
+  // Set up custom drag preview
+  useEffect(() => {
+    // Create a custom drag image
+    const img = new Image();
+    img.crossOrigin = 'anonymous'; // Handle CORS issues
+    img.onload = () => {
+      // Set preview with the loaded image
+      preview(img, {
+        captureDraggingState: true,
+        offsetX: 0,
+        offsetY: 0
+      });
+    };
+    img.onerror = () => {
+      // If image fails to load, create a fallback preview
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 80;
+      canvas.height = 80;
+      
+      // Draw a simple placeholder
+      ctx.fillStyle = '#f8f9fa';
+      ctx.fillRect(0, 0, 80, 80);
+      ctx.fillStyle = '#6b7280';
+      ctx.font = '12px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(charm.name || 'Charm', 40, 40);
+      
+      preview(canvas, { captureDraggingState: true });
+    };
+    img.src = charm.image;
+  }, [charm.image, charm.name, preview]);
+
   return (
     <>
-      <div
-        ref={dragPreview}
-        style={{
-          position: 'fixed',
-          pointerEvents: 'none',
-          zIndex: 10000,
-          left: '-1000px',
-          top: '-1000px'
-        }}
-      >
-        {/* Drag preview - hidden off-screen */}
-        <div
-          style={{
-            width: '80px',
-            height: '80px',
-            backgroundImage: `url(${charm.image})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            borderRadius: '12px',
-            opacity: 0.8,
-            border: '2px solid #4F46E5'
-          }}
-        />
-      </div>
       
       <div
         ref={drag}
