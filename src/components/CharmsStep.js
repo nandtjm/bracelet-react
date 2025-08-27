@@ -1,4 +1,5 @@
 import React from 'react';
+import DraggableCharm from './DraggableCharm';
 
 const CharmsStep = ({ 
   charmCategories,
@@ -208,15 +209,14 @@ const CharmsStep = ({
             }}>
               +
             </div>
-            <div 
-              draggable={!charm.isSoldOut}
-              onDragStart={(e) => {
-                e.stopPropagation();
-                handleDragStart(e, charm, 'charm');
-              }}
+            <DraggableCharm
+              charm={charm}
+              isFromGrid={true}
+              onDragStart={handleDragStart}
               onDragEnd={() => {
                 setIsDragInProgress(false);
               }}
+              disabled={charm.isSoldOut}
               style={{ 
                 width: '80px', 
                 height: '80px', 
@@ -226,10 +226,9 @@ const CharmsStep = ({
                 backgroundImage: `url(${charm.image})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                cursor: charm.isSoldOut ? 'not-allowed' : 'grab',
                 position: 'relative'
               }}
-            ></div>
+            />
             <div style={{ fontSize: '14px', marginBottom: '4px', fontWeight: '500' }}>{charm.name}</div>
             <div style={{ fontSize: '14px', fontWeight: '600' }}>{formatPrice ? formatPrice(charm.price) : `$${charm.price}`}</div>
           </div>

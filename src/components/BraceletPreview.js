@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import CharmDropzone from './CharmDropzone';
+import DraggableCharm from './DraggableCharm';
 
 const BraceletPreview = ({ 
   customization, 

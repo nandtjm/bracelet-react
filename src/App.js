@@ -7,6 +7,7 @@ import DesignStep from './components/DesignStep';
 import WordStep from './components/WordStep';
 import CharmsStep from './components/CharmsStep';
 import MobileLayout from './components/MobileLayout';
+import CustomDndProvider from './components/DndProvider';
 import useWordPressIntegration from './hooks/useWordPressIntegration';
 import { toPng } from 'html-to-image';
 
@@ -1405,10 +1406,11 @@ function App() {
   };
 
   return (
-    <div className="bc-app" style={{ 
-      position: 'relative',
-      pointerEvents: isAddingToCart ? 'none' : 'auto' 
-    }}>
+    <CustomDndProvider>
+      <div className="bc-app" style={{ 
+        position: 'relative',
+        pointerEvents: isAddingToCart ? 'none' : 'auto' 
+      }}>
       {/* Loading Overlay */}
       {isAddingToCart && (
         <div style={{
@@ -2185,7 +2187,8 @@ function App() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </CustomDndProvider>
   );
 }
 
