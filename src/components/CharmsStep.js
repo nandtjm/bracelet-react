@@ -228,7 +228,17 @@ const CharmsStep = ({
                 backgroundPosition: 'center',
                 position: 'relative'
               }}
-            />
+            >
+              {/* Charm content inside the draggable wrapper */}
+              <div style={{ 
+                width: '100%', 
+                height: '100%', 
+                borderRadius: '12px',
+                backgroundImage: `url(${charm.image})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'
+              }} />
+            </DraggableCharm>
             <div style={{ fontSize: '14px', marginBottom: '4px', fontWeight: '500' }}>{charm.name}</div>
             <div style={{ fontSize: '14px', fontWeight: '600' }}>{formatPrice ? formatPrice(charm.price) : `$${charm.price}`}</div>
           </div>

@@ -124,27 +124,18 @@ const BraceletPreview = ({
                     const isOccupied = !!charmInThisDropzone;
                     
                     return (
-                      <div 
+                      <CharmDropzone
                         key={index}
-                        className={`bc-dropzone ${!isOccupied ? 'bc-dropzone-full' : ''}`}
-                        style={{ 
-                          left: position.left, 
-                          top: position.top,
-                          background: !isOccupied && dragOverIndex === index ? 'rgba(218, 159, 196, 0.8)' : (isOccupied ? 'transparent' : undefined),
-                          boxShadow: !isOccupied && dragOverIndex === index ? '0 0 15px 6px #da9fc4aa' : (isOccupied ? 'none' : undefined),
-                          border: isOccupied ? 'none' : undefined,
-                          transform: !isOccupied && dragOverIndex === index ? 'scale(1.2)' : 'scale(1)',
-                          transition: 'all 0.2s ease',
-                          zIndex: dragOverIndex === index ? 20 : 5
-                        }}
+                        dropzoneIndex={index}
+                        onDrop={handleDrop}
                         onDragOver={(e) => {
                           handleDragOver(e);
                           setDragOverIndex(index);
                         }}
-                        onDragLeave={() => setDragOverIndex(null)}
-                        onDrop={(e) => {
-                          handleDrop(e, index);
-                          setDragOverIndex(null);
+                        isOccupied={isOccupied}
+                        style={{ 
+                          left: position.left, 
+                          top: position.top
                         }}
                       >
                         <div className="bc-magnetic-zone"></div>
@@ -179,30 +170,11 @@ const BraceletPreview = ({
                               </svg>
                             </button>
                             
-                            <div 
-                              className="bc-drag-box bc-draggable-inner-item" 
-                              draggable="true" 
-                              data-original-scale="6" 
-                              data-draggable="true" 
-                              role="button" 
-                              tabIndex={0} 
-                              aria-disabled="false" 
-                              aria-roledescription="draggable" 
-                              style={{ 
-                                ...getCharmPositionStyles(index),
-                                position: 'absolute',
-                                width: '80px',
-                                height: '80px',
-                                cursor: 'grab',
-                                zIndex: 15,
-                                opacity: draggingCharmIndex === index ? 0.5 : 1,
-                                transition: 'opacity 0.2s ease',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
+                            <DraggableCharm
+                              charm={{ ...charmInThisDropzone, currentDropzoneIndex: index }}
+                              isFromGrid={false}
+                              currentDropzoneIndex={index}
                               onDragStart={(e) => {
-                                e.stopPropagation();
                                 setDraggingCharmIndex(index);
                                 handleDragStart(e, { ...charmInThisDropzone, currentDropzoneIndex: index }, 'placed-charm');
                               }}
@@ -210,6 +182,13 @@ const BraceletPreview = ({
                                 setDraggingCharmIndex(null);
                                 setDragOverIndex(null);
                                 setIsDragInProgress(false);
+                              }}
+                              style={{ 
+                                ...getCharmPositionStyles(index),
+                                position: 'absolute',
+                                width: '80px',
+                                height: '80px',
+                                zIndex: 15
                               }}
                             >
                               <img 
@@ -224,12 +203,11 @@ const BraceletPreview = ({
                                   width: 'auto',
                                   height: 'auto'
                                 }}
-                                draggable="false"
                               />
-                            </div>
+                            </DraggableCharm>
                           </>
                         )}
-                      </div>
+                      </CharmDropzone>
                     );
                   })}
                 </div>
