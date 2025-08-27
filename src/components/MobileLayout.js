@@ -32,18 +32,17 @@ const MobileLayout = ({
         <div style={{
           flex: '0 0 auto',
           paddingTop: '12px',
-          paddingBottom: '8px',
-          paddingLeft: '20px',
-          paddingRight: '20px'
+          paddingBottom: '0',
+          paddingLeft: '8px',
+          paddingRight: '8px'
         }}>
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '16px'
           }}>
             {/* Back Button */}
-            <div style={{ width: '80px', display: 'flex', justifyContent: 'flex-start' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
               {(currentStep > 1 || isReviewMode) && (
                 <button
                   style={{
@@ -53,7 +52,8 @@ const MobileLayout = ({
                     cursor: 'pointer',
                     color: '#6b7280',
                     fontWeight: '500',
-                    padding: '4px 0'
+                    padding: '0',
+                    margin: '0'
                   }}
                   onClick={() => {
                     if (onBackStep) {
@@ -103,6 +103,7 @@ const MobileLayout = ({
                     marginLeft: '5px',
                     fontSize: '12px',
                     fontWeight: '600',
+                    padding: '5px',
                     color: index + 1 === currentStep ? '#1f2937' :
                             index + 1 < currentStep ? '#059669' : '#6b7280'
                   }}>
@@ -124,7 +125,7 @@ const MobileLayout = ({
             </div>
 
             {/* Close Button */}
-            <div style={{ width: '80px', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               {onClose && (
                 <button
                   style={{
@@ -133,7 +134,10 @@ const MobileLayout = ({
                     fontSize: '24px',
                     cursor: 'pointer',
                     color: '#6b7280',
-                    padding: '4px'
+                    padding: '0',
+                    margin: '0',
+                    lineHeight: '35px',
+                    minHeight: '35px',
                   }}
                   onClick={onClose}
                 >
@@ -150,7 +154,8 @@ const MobileLayout = ({
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: '20px'
+          padding: '20px',
+          paddingTop: '0'
         }}>
           {children}
         </div>

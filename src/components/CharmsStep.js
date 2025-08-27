@@ -40,7 +40,9 @@ const CharmsStep = ({
             border: '1px solid #e5e7eb',
             borderRadius: '8px',
             fontSize: '14px',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            marginBottom: 'revert',
+            height: 'revert'
           }}
         />
         <div style={{
