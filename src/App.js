@@ -724,16 +724,69 @@ function App() {
         return null;
       }
 
-      // Wait a bit for any loading images to complete
+      // Store original styles to restore later
+      const elementsToHide = [];
+      
+      // Hide dropzone pink spots during capture
+      const dropzones = document.querySelectorAll('.bc-dropzone, .dropzone-highlight, [class*="dropzone"]');
+      dropzones.forEach(el => {
+        elementsToHide.push({
+          element: el,
+          originalStyle: el.style.cssText,
+          originalDisplay: el.style.display
+        });
+        el.style.display = 'none';
+      });
+
+      // Hide charm close buttons during capture
+      const closeButtons = document.querySelectorAll('.bc-charm-close, .charm-remove-btn, [class*="close-btn"], [class*="remove-btn"]');
+      closeButtons.forEach(el => {
+        elementsToHide.push({
+          element: el,
+          originalStyle: el.style.cssText,
+          originalDisplay: el.style.display
+        });
+        el.style.display = 'none';
+      });
+
+      // Hide any pink/magenta colored elements that might be dropzone indicators
+      const allElements = previewElement.querySelectorAll('*');
+      allElements.forEach(el => {
+        const computedStyle = window.getComputedStyle(el);
+        const bgColor = computedStyle.backgroundColor;
+        const borderColor = computedStyle.borderColor;
+        
+        // Check for pink/magenta colors (common dropzone indicators)
+        if (bgColor.includes('rgb(255, 192, 203)') || // pink
+            bgColor.includes('rgb(255, 0, 255)') || // magenta
+            bgColor.includes('rgb(219, 39, 119)') || // pink-600
+            borderColor.includes('rgb(255, 192, 203)') ||
+            borderColor.includes('rgb(255, 0, 255)') ||
+            borderColor.includes('rgb(219, 39, 119)') ||
+            bgColor.includes('pink') || bgColor.includes('magenta')) {
+          
+          elementsToHide.push({
+            element: el,
+            originalStyle: el.style.cssText,
+            originalDisplay: el.style.display
+          });
+          el.style.display = 'none';
+        }
+      });
+
+      // Wait a bit for any loading images to complete and DOM updates
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Capture the screenshot with better error handling
-      const dataUrl = await toPng(previewElement, {
+      // Get container dimensions for better centering
+      const containerRect = previewElement.getBoundingClientRect();
+      
+      // First capture the raw preview without padding
+      const rawDataUrl = await toPng(previewElement, {
         quality: 1.0,
         pixelRatio: 2, // For higher quality on retina displays
-        backgroundColor: '#f9fafb', // Match the background color
-        width: previewElement.offsetWidth,
-        height: previewElement.offsetHeight,
+        backgroundColor: 'transparent', // Keep transparent for composition
+        width: containerRect.width,
+        height: containerRect.height,
         useCORS: true, // Handle CORS issues
         allowTaint: true, // Allow cross-origin images
         skipFonts: true, // Skip font loading to avoid delays
@@ -743,8 +796,76 @@ function App() {
             // Only include images that are actually loaded
             return node.complete && node.naturalHeight !== 0;
           }
+          
+          // Skip any elements that are still marked as hidden
+          const computedStyle = window.getComputedStyle(node);
+          if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+            return false;
+          }
+          
           return true;
         }
+      });
+
+      // Create a properly centered composition with margins
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      // Set canvas size with proper margins (square format)
+      const margin = 40; // 20px margin on each side
+      const canvasSize = 500; // Square 500x500 output
+      canvas.width = canvasSize;
+      canvas.height = canvasSize;
+      
+      // Fill with white background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvasSize, canvasSize);
+      
+      // Create image from raw capture
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      const dataUrl = await new Promise((resolve) => {
+        img.onload = () => {
+          // Calculate dimensions to center the bracelet with margins
+          const availableSize = canvasSize - (margin * 2);
+          let drawWidth, drawHeight, drawX, drawY;
+          
+          // Maintain aspect ratio while fitting in available space
+          const imgAspect = img.width / img.height;
+          const availableAspect = 1; // Square available space
+          
+          if (imgAspect > availableAspect) {
+            // Image is wider - fit to width
+            drawWidth = availableSize;
+            drawHeight = availableSize / imgAspect;
+          } else {
+            // Image is taller - fit to height
+            drawHeight = availableSize;
+            drawWidth = availableSize * imgAspect;
+          }
+          
+          // Center the image
+          drawX = margin + (availableSize - drawWidth) / 2;
+          drawY = margin + (availableSize - drawHeight) / 2;
+          
+          // Draw the bracelet image centered with margins
+          ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+          
+          resolve(canvas.toDataURL('image/png'));
+        };
+        
+        img.onerror = () => {
+          console.error('Failed to load captured image');
+          resolve(rawDataUrl); // Fallback to raw capture
+        };
+        
+        img.src = rawDataUrl;
+      });
+
+      // Restore original styles for all hidden elements
+      elementsToHide.forEach(({ element, originalStyle }) => {
+        element.style.cssText = originalStyle;
       });
 
       // Store the screenshot temporarily for use on review page
@@ -760,9 +881,16 @@ function App() {
         const dataUrl = await toPng(previewElement, {
           quality: 0.8,
           pixelRatio: 1,
-          backgroundColor: '#f9fafb',
+          backgroundColor: '#ffffff',
           skipFonts: true,
-          filter: () => true // Include all elements in fallback
+          filter: (node) => {
+            // In fallback, be more permissive but still hide UI elements
+            const computedStyle = window.getComputedStyle(node);
+            if (computedStyle.display === 'none' || computedStyle.visibility === 'hidden') {
+              return false;
+            }
+            return true;
+          }
         });
         
         // Store the fallback screenshot
@@ -1924,7 +2052,7 @@ function App() {
                         if (result) {
                           // Redirect to cart page
                           const cartUrl = window.BraceletCustomizerConfig?.woocommerce?.cartUrl || '/cart';
-                          window.location.href = cartUrl;
+                          //window.location.href = cartUrl;
                         } else {
                           setIsAddingToCart(false);
                           alert('Error adding to cart. Please try again.');
