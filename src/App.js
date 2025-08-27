@@ -467,24 +467,39 @@ function App() {
     // console.log('Setting draggedItem to:', dragData);
     setDraggedItem(dragData);
     setIsDragInProgress(true);
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+    
+    // Only set dataTransfer properties if they exist (HTML5 backend)
+    // React DnD TouchBackend doesn't provide dataTransfer
+    if (e && e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', JSON.stringify(dragData));
+    }
   };
 
   const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    
+    // Only set dropEffect if dataTransfer exists (HTML5 backend)
+    if (e && e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'move';
+    }
   };
 
   const handleDrop = (e, dropzoneIndex) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
     
     // console.log('Drop event triggered on dropzone:', dropzoneIndex, 'with draggedItem:', draggedItem);
     
-    // Fallback: try to get data from dataTransfer if draggedItem is null
+    // Fallback: try to get data from dataTransfer if draggedItem is null (HTML5 backend only)
     let currentDraggedItem = draggedItem;
-    if (!currentDraggedItem) {
+    if (!currentDraggedItem && e && e.dataTransfer) {
       try {
         const transferData = e.dataTransfer.getData('text/plain');
         if (transferData) {
