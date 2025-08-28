@@ -810,19 +810,24 @@ function App() {
       // Store original styles to restore later
       const elementsToHide = [];
       
-      // Hide dropzone pink spots during capture
-      const dropzones = document.querySelectorAll('.bc-dropzone, .dropzone-highlight, [class*="dropzone"]');
-      dropzones.forEach(el => {
-        elementsToHide.push({
-          element: el,
-          originalStyle: el.style.cssText,
-          originalDisplay: el.style.display
-        });
-        el.style.display = 'none';
+      // Hide only the empty dropzone circles (not the placed charms)
+      const emptyDropzones = document.querySelectorAll('.bc-dropzone');
+      emptyDropzones.forEach(el => {
+        // Check if this dropzone is empty (doesn't have a charm placed)
+        const hasCharmPlaced = el.querySelector('.bc-draggable-inner-item, [class*="charm-"], img[src*="charm"]');
+        
+        if (!hasCharmPlaced) {
+          elementsToHide.push({
+            element: el,
+            originalStyle: el.style.cssText,
+            originalDisplay: el.style.display
+          });
+          el.style.display = 'none';
+        }
       });
 
-      // Hide charm close buttons during capture
-      const closeButtons = document.querySelectorAll('.bc-charm-close, .charm-remove-btn, [class*="close-btn"], [class*="remove-btn"]');
+      // Hide charm close buttons during capture (more specific selectors)
+      const closeButtons = document.querySelectorAll('.bc-charm-close, .charm-remove-btn, .bc-remove-charm-btn, button[class*="close"], button[class*="remove"]');
       closeButtons.forEach(el => {
         elementsToHide.push({
           element: el,
@@ -832,28 +837,27 @@ function App() {
         el.style.display = 'none';
       });
 
-      // Hide any pink/magenta colored elements that might be dropzone indicators
+      // Hide elements with specific dropzone box-shadow (the pink glow)
       const allElements = previewElement.querySelectorAll('*');
       allElements.forEach(el => {
         const computedStyle = window.getComputedStyle(el);
-        const bgColor = computedStyle.backgroundColor;
-        const borderColor = computedStyle.borderColor;
+        const boxShadow = computedStyle.boxShadow;
         
-        // Check for pink/magenta colors (common dropzone indicators)
-        if (bgColor.includes('rgb(255, 192, 203)') || // pink
-            bgColor.includes('rgb(255, 0, 255)') || // magenta
-            bgColor.includes('rgb(219, 39, 119)') || // pink-600
-            borderColor.includes('rgb(255, 192, 203)') ||
-            borderColor.includes('rgb(255, 0, 255)') ||
-            borderColor.includes('rgb(219, 39, 119)') ||
-            bgColor.includes('pink') || bgColor.includes('magenta')) {
+        // Hide elements with the pink dropzone glow specifically (#da9fc466)
+        if (boxShadow && boxShadow.includes('218, 159, 196')) {
+          // Only hide if it's not a placed charm container
+          const isPlacedCharm = el.closest('.bc-draggable-inner-item') || 
+                               el.querySelector('.bc-draggable-inner-item') ||
+                               el.querySelector('img[src*="charm"]');
           
-          elementsToHide.push({
-            element: el,
-            originalStyle: el.style.cssText,
-            originalDisplay: el.style.display
-          });
-          el.style.display = 'none';
+          if (!isPlacedCharm) {
+            elementsToHide.push({
+              element: el,
+              originalStyle: el.style.cssText,
+              originalDisplay: el.style.display
+            });
+            el.style.display = 'none';
+          }
         }
       });
 
@@ -895,8 +899,8 @@ function App() {
       const ctx = canvas.getContext('2d');
       
       // Set canvas size with proper margins (square format)
-      const margin = 40; // 20px margin on each side
-      const canvasSize = 500; // Square 500x500 output
+      const margin = 60; // More margin for better centering
+      const canvasSize = 600; // Larger square 600x600 output for better quality
       canvas.width = canvasSize;
       canvas.height = canvasSize;
       
@@ -914,23 +918,35 @@ function App() {
           const availableSize = canvasSize - (margin * 2);
           let drawWidth, drawHeight, drawX, drawY;
           
-          // Maintain aspect ratio while fitting in available space
+          // For bracelet images, we want to maintain aspect ratio and center
           const imgAspect = img.width / img.height;
-          const availableAspect = 1; // Square available space
           
-          if (imgAspect > availableAspect) {
-            // Image is wider - fit to width
-            drawWidth = availableSize;
-            drawHeight = availableSize / imgAspect;
+          // Scale the image to fit within available space while maintaining aspect ratio
+          if (imgAspect > 1) {
+            // Image is wider than tall
+            drawWidth = Math.min(availableSize, img.width);
+            drawHeight = drawWidth / imgAspect;
+            
+            // If height exceeds available space, scale down
+            if (drawHeight > availableSize) {
+              drawHeight = availableSize;
+              drawWidth = drawHeight * imgAspect;
+            }
           } else {
-            // Image is taller - fit to height
-            drawHeight = availableSize;
-            drawWidth = availableSize * imgAspect;
+            // Image is taller than wide or square
+            drawHeight = Math.min(availableSize, img.height);
+            drawWidth = drawHeight * imgAspect;
+            
+            // If width exceeds available space, scale down
+            if (drawWidth > availableSize) {
+              drawWidth = availableSize;
+              drawHeight = drawWidth / imgAspect;
+            }
           }
           
-          // Center the image
-          drawX = margin + (availableSize - drawWidth) / 2;
-          drawY = margin + (availableSize - drawHeight) / 2;
+          // Center the image perfectly within the canvas
+          drawX = (canvasSize - drawWidth) / 2;
+          drawY = (canvasSize - drawHeight) / 2;
           
           // Draw the bracelet image centered with margins
           ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
