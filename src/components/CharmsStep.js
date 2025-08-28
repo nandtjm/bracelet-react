@@ -109,7 +109,7 @@ const CharmsStep = ({
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-        {charmsByCategory[selectedCharmCategory]
+        {charmsByCategory(selectedCharmCategory)
           .filter(charm => 
             charmSearchQuery === '' || 
             charm.name.toLowerCase().includes(charmSearchQuery.toLowerCase())
