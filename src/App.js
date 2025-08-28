@@ -20,6 +20,7 @@ function App() {
   const [dataSource, setDataSource] = useState('mockdata');
   const [bracelets, setBracelets] = useState([]);
   const [charms, setCharms] = useState([]);
+  const [charmCategoriesMap, setCharmCategoriesMap] = useState({});
   const [customization, setCustomization] = useState({
     braceletStyle: 'bluestone',
     word: '', // Ensure word starts empty
@@ -63,20 +64,20 @@ function App() {
   const charmCategories = loading ? [] : (() => {
     const categorySet = new Set(['All']);
     
-    charms.forEach(charm => {
-      // If charm has categories object (from WordPress API)
-      if (charm.categories && typeof charm.categories === 'object') {
-        // Add all display names from the categories object
-        Object.values(charm.categories).forEach(displayName => {
-          categorySet.add(displayName);
-        });
-      } 
-      // Fallback for old structure where category is a simple string
-      else if (charm.category) {
-        const formattedCategory = charm.category.charAt(0).toUpperCase() + charm.category.slice(1).replace('-', ' ');
-        categorySet.add(formattedCategory);
-      }
-    });
+    // Add display names from the categories map (from API response)
+    if (charmCategoriesMap && Object.keys(charmCategoriesMap).length > 0) {
+      Object.values(charmCategoriesMap).forEach(displayName => {
+        categorySet.add(displayName);
+      });
+    } else {
+      // Fallback: extract categories from charms and format them
+      charms.forEach(charm => {
+        if (charm.category) {
+          const formattedCategory = charm.category.charAt(0).toUpperCase() + charm.category.slice(1).replace('-', ' ');
+          categorySet.add(formattedCategory);
+        }
+      });
+    }
     
     return Array.from(categorySet);
   })();
@@ -124,9 +125,14 @@ function App() {
           
           if (charmsResponse && charmsResponse.data) {
             setCharms(charmsResponse.data);
+            // Store categories mapping from API response
+            if (charmsResponse.categories) {
+              setCharmCategoriesMap(charmsResponse.categories);
+            }
           } else {
             // Fallback to mock data
             setCharms(mockData.charms);
+            setCharmCategoriesMap({});
           }
         } else {
           // Standalone mode - use mock data
@@ -247,32 +253,48 @@ function App() {
       return charms;
     }
     
-    // Handle both display names and slugs
+    console.log(`Filtering charms for category: "${categoryName}"`);
+    console.log('Available categories map:', charmCategoriesMap);
+    console.log('Available charms:', charms.map(c => ({ name: c.name, category: c.category })));
+    
     return charms.filter(charm => {
-      // If charm has categories object (from WordPress API)
-      if (charm.categories && typeof charm.categories === 'object') {
-        // Check if the categoryName matches any slug (key) or display name (value)
-        return Object.entries(charm.categories).some(([slug, displayName]) => 
-          slug === categoryName || displayName === categoryName
-        );
+      if (!charm.category) return false;
+      
+      // Check if categoryName is a display name, find its slug
+      const categorySlug = Object.entries(charmCategoriesMap).find(([slug, displayName]) => 
+        displayName === categoryName
+      )?.[0];
+      
+      console.log(`For charm "${charm.name}": category="${charm.category}", looking for="${categoryName}", found slug="${categorySlug}"`);
+      
+      // Match either by slug or display name
+      if (categorySlug && charm.category === categorySlug) {
+        console.log(`✓ Matched by slug: ${charm.category} === ${categorySlug}`);
+        return true;
       }
       
-      // Fallback for old structure where category is a simple string
-      if (charm.category) {
-        // Handle legacy hardcoded mappings for backward compatibility
-        const legacyMappings = {
-          'Bestsellers': ['bestsellers'],
-          'New Drops & Favs': ['new-drops', 'new-drops-favs'],
-          'Personalize it': ['personalize-it']
-        };
-        
-        if (legacyMappings[categoryName]) {
-          return legacyMappings[categoryName].includes(charm.category);
+      // Direct slug match
+      if (charm.category === categoryName) {
+        console.log(`✓ Direct match: ${charm.category} === ${categoryName}`);
+        return true;
+      }
+      
+      // Legacy hardcoded mappings for backward compatibility
+      const legacyMappings = {
+        'Bestsellers': ['bestsellers'],
+        'New Drops & Favs': ['new-drops', 'new-drops-favs'],
+        'Personalize it': ['personalize-it']
+      };
+      
+      if (legacyMappings[categoryName]) {
+        const isLegacyMatch = legacyMappings[categoryName].includes(charm.category);
+        if (isLegacyMatch) {
+          console.log(`✓ Legacy match: ${charm.category} in ${legacyMappings[categoryName]}`);
         }
-        
-        return charm.category === categoryName;
+        return isLegacyMatch;
       }
       
+      console.log(`✗ No match for charm "${charm.name}"`);
       return false;
     });
   };
