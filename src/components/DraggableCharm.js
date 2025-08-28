@@ -68,12 +68,13 @@ const DraggableCharm = ({
       background-image: url(${charm.image});
       background-size: cover;
       background-position: center;
+      background-color: transparent;
       border-radius: 12px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
       pointer-events: none;
       z-index: 999999;
-      border: 2px solid #FFB6C1;
-      opacity: 0.9;
+      border: none;
+      opacity: 0.8;
       transform: translate(-50%, -50%);
       transition: none;
       display: block !important;

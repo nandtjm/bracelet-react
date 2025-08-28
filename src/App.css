@@ -421,9 +421,10 @@ img {
   pointer-events: none !important;
   display: block !important;
   visibility: visible !important;
-  opacity: 0.9 !important;
+  opacity: 0.8 !important;
   background-repeat: no-repeat !important;
-  border: 2px solid #FFB6C1 !important;
+  background-color: transparent !important;
+  border: none !important;
   border-radius: 12px !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
   transform: translate(-50%, -50%) !important;
