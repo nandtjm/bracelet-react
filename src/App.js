@@ -2136,7 +2136,7 @@ function App() {
                         if (result) {
                           // Redirect to cart page
                           const cartUrl = window.BraceletCustomizerConfig?.woocommerce?.cartUrl || '/cart';
-                          //window.location.href = cartUrl;
+                          window.location.href = cartUrl;
                         } else {
                           setIsAddingToCart(false);
                           alert('Error adding to cart. Please try again.');
