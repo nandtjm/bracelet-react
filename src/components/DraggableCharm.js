@@ -60,6 +60,7 @@ const DraggableCharm = ({
     
     const previewElement = document.createElement('div');
     previewElement.id = `drag-preview-${charm.id}`;
+    previewElement.className = 'bracelet-customizer-drag-preview';
     previewElement.style.cssText = `
       position: fixed;
       width: 60px;
@@ -70,15 +71,29 @@ const DraggableCharm = ({
       border-radius: 12px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.3);
       pointer-events: none;
-      z-index: 10000;
+      z-index: 999999;
       border: 2px solid #FFB6C1;
       opacity: 0.9;
       transform: translate(-50%, -50%);
       transition: none;
+      display: block !important;
+      visibility: visible !important;
     `;
     
     document.body.appendChild(previewElement);
     setDragPreview(previewElement);
+    
+    // Debug logging for WordPress environment
+    if (typeof window !== 'undefined' && window.braceletCustomizerData) {
+      console.log('Drag preview created for WordPress environment:', {
+        id: previewElement.id,
+        className: previewElement.className,
+        zIndex: previewElement.style.zIndex,
+        position: previewElement.style.position,
+        display: previewElement.style.display,
+        visibility: previewElement.style.visibility
+      });
+    }
     
     // Add mouse/touch move listener to follow cursor
     const handleMove = (e) => {
