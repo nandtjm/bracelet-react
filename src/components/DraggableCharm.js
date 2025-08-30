@@ -198,12 +198,23 @@ const DraggableCharm = ({
       document.addEventListener('touchmove', handleMove, { passive: true });
       document.addEventListener('mousemove', trackGlobalMouse, { passive: true });
     } else {
-      // For mouse devices, use passive listeners to not interfere with HTML5Backend
-      document.addEventListener('mousemove', trackGlobalMouse, { passive: true });
-      document.addEventListener('dragstart', (e) => {
-        // Track initial drag position
-        handleMove(e);
-      }, { passive: true });
+      // For mouse devices, use drag events which work during HTML5 drag operation
+      const dragElement = previewElement.closest('[draggable="true"]') || document.body;
+      
+      const handleDragEvent = (e) => {
+        // The drag event provides cursor position during HTML5 drag
+        if (e.clientX !== 0 && e.clientY !== 0) {
+          trackGlobalMouse(e);
+        }
+      };
+      
+      // Listen for drag events on the draggable element
+      dragElement.addEventListener('drag', handleDragEvent, { passive: true });
+      document.addEventListener('dragstart', handleDragEvent, { passive: true });
+      
+      // Store reference for cleanup
+      previewElement._dragElement = dragElement;
+      previewElement._handleDragEvent = handleDragEvent;
     }
     
     // Store event handlers for cleanup
@@ -212,8 +223,14 @@ const DraggableCharm = ({
         document.removeEventListener('touchmove', handleMove, { passive: true });
         document.removeEventListener('mousemove', trackGlobalMouse, { passive: true });
       } else {
-        document.removeEventListener('mousemove', trackGlobalMouse, { passive: true });
-        document.removeEventListener('dragstart', handleMove, { passive: true });
+        // Clean up drag event listeners
+        const dragElement = previewElement._dragElement;
+        const handleDragEvent = previewElement._handleDragEvent;
+        
+        if (dragElement && handleDragEvent) {
+          dragElement.removeEventListener('drag', handleDragEvent, { passive: true });
+          document.removeEventListener('dragstart', handleDragEvent, { passive: true });
+        }
       }
     };
   };
@@ -262,11 +279,61 @@ const DraggableCharm = ({
     }
   }, [preview]);
   
+  // Add drag event listener to the draggable element for cursor tracking
+  const dragRef = React.useCallback((node) => {
+    drag(node);
+    
+    if (node) {
+      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      
+      if (!isTouch) {
+        const handleDragEvent = (e) => {
+          if (e.clientX !== 0 && e.clientY !== 0) {
+            window.lastMouseX = e.clientX;
+            window.lastMouseY = e.clientY;
+            
+            if (dragPreview) {
+              dragPreview.setAttribute('style', `
+                position: fixed !important;
+                left: ${e.clientX}px !important;
+                top: ${e.clientY}px !important;
+                width: 60px !important;
+                height: 60px !important;
+                background-image: url(${charm.image}) !important;
+                background-size: cover !important;
+                background-position: center !important;
+                background-color: transparent !important;
+                border-radius: 12px !important;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+                pointer-events: none !important;
+                z-index: 999999 !important;
+                border: none !important;
+                opacity: 0.9 !important;
+                transform: translate(-50%, -50%) !important;
+                transition: none !important;
+                display: block !important;
+                visibility: visible !important;
+                will-change: transform !important;
+                min-width: 60px !important;
+                min-height: 60px !important;
+              `);
+            }
+          }
+        };
+        
+        node.addEventListener('drag', handleDragEvent, { passive: true });
+        
+        // Store for cleanup
+        node._dragHandler = handleDragEvent;
+      }
+    }
+  }, [drag, dragPreview, charm.image]);
+  
   return (
     <>
       
       <div
-        ref={drag}
+        ref={dragRef}
         className={className}
         style={{
           ...style,
