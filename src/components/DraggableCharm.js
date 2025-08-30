@@ -61,31 +61,65 @@ const DraggableCharm = ({
     const previewElement = document.createElement('div');
     previewElement.id = `drag-preview-${charm.id}`;
     previewElement.className = 'bracelet-customizer-drag-preview';
-    previewElement.style.cssText = `
-      position: fixed;
-      width: 60px;
-      height: 60px;
-      background-image: url(${charm.image});
-      background-size: cover;
-      background-position: center;
-      background-color: transparent;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-      pointer-events: none;
-      z-index: 999999;
-      border: none;
-      opacity: 0.9;
-      transform: translate(-50%, -50%);
-      transition: none;
+    
+    // Force all styles inline to override any CSS conflicts
+    previewElement.setAttribute('style', `
+      position: fixed !important;
+      width: 60px !important;
+      height: 60px !important;
+      background-image: url(${charm.image}) !important;
+      background-size: cover !important;
+      background-position: center !important;
+      background-color: transparent !important;
+      border-radius: 12px !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+      pointer-events: none !important;
+      z-index: 999999 !important;
+      border: none !important;
+      opacity: 0.9 !important;
+      transform: translate(-50%, -50%) !important;
+      transition: none !important;
       display: block !important;
       visibility: visible !important;
-      will-change: transform;
-      top: -1000px;
-      left: -1000px;
-    `;
+      will-change: transform !important;
+      top: 100px !important;
+      left: 100px !important;
+      min-width: 60px !important;
+      min-height: 60px !important;
+    `);
     
     document.body.appendChild(previewElement);
     setDragPreview(previewElement);
+    
+    // Force immediate visibility check
+    setTimeout(() => {
+      if (previewElement && document.body.contains(previewElement)) {
+        previewElement.setAttribute('style', `
+          position: fixed !important;
+          left: 100px !important;
+          top: 100px !important;
+          width: 60px !important;
+          height: 60px !important;
+          background-image: url(${charm.image}) !important;
+          background-size: cover !important;
+          background-position: center !important;
+          background-color: transparent !important;
+          border-radius: 12px !important;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+          pointer-events: none !important;
+          z-index: 999999 !important;
+          border: none !important;
+          opacity: 0.9 !important;
+          transform: translate(-50%, -50%) !important;
+          transition: none !important;
+          display: block !important;
+          visibility: visible !important;
+          will-change: transform !important;
+          min-width: 60px !important;
+          min-height: 60px !important;
+        `);
+      }
+    }, 10);
     
     // Position it at current cursor position immediately
     const setInitialPosition = (e) => {
@@ -112,13 +146,31 @@ const DraggableCharm = ({
       const y = e.clientY || (e.touches && e.touches[0]?.clientY);
       
       if (x !== undefined && y !== undefined) {
-        // Use transform for better performance and precision
-        previewElement.style.left = x + 'px';
-        previewElement.style.top = y + 'px';
-        previewElement.style.transform = 'translate(-50%, -50%)';
-        // Ensure it's visible
-        previewElement.style.display = 'block';
-        previewElement.style.visibility = 'visible';
+        // Force visibility and positioning with maximum specificity
+        previewElement.setAttribute('style', `
+          position: fixed !important;
+          left: ${x}px !important;
+          top: ${y}px !important;
+          width: 60px !important;
+          height: 60px !important;
+          background-image: url(${charm.image}) !important;
+          background-size: cover !important;
+          background-position: center !important;
+          background-color: transparent !important;
+          border-radius: 12px !important;
+          box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
+          pointer-events: none !important;
+          z-index: 999999 !important;
+          border: none !important;
+          opacity: 0.9 !important;
+          transform: translate(-50%, -50%) !important;
+          transition: none !important;
+          display: block !important;
+          visibility: visible !important;
+          will-change: transform !important;
+          min-width: 60px !important;
+          min-height: 60px !important;
+        `);
       }
     };
     
