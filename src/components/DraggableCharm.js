@@ -31,13 +31,8 @@ const DraggableCharm = ({
         onDragStart(fakeEvent, charm, dragData.itemType);
       }
       
-      // Create drag preview based on device type
-      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-      if (isTouch) {
-        // For touch devices, create full custom preview
-        createDragPreview();
-      }
-      // For mouse devices, rely primarily on HTML5 drag preview
+      // Create drag preview for all devices
+      createDragPreview();
       
       return dragData;
     },
@@ -45,11 +40,8 @@ const DraggableCharm = ({
       isDragging: monitor.isDragging(),
     }),
     end: (_, _monitor) => {
-      // Remove drag preview only for touch devices
-      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-      if (isTouch) {
-        removeDragPreview();
-      }
+      // Remove drag preview
+      removeDragPreview();
       
       if (onDragEnd) {
         const fakeEvent = {
@@ -138,16 +130,16 @@ const DraggableCharm = ({
     // Listen for the first mousemove to get position
     document.addEventListener('mousemove', getInitialPosition, { once: true });
     
-    // Use different event handling based on device type
+    // Use device-appropriate event handling to not interfere with drop detection
     const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    
     if (isTouch) {
-      // For touch devices, use passive listeners to avoid blocking
+      // For touch devices, use comprehensive tracking
       document.addEventListener('touchmove', handleMove, { passive: true });
       document.addEventListener('mousemove', handleMove, { passive: true });
     } else {
-      // For mouse devices, use active listeners for better control
-      document.addEventListener('mousemove', handleMove, { passive: false });
-      document.addEventListener('touchmove', handleMove, { passive: false });
+      // For mouse devices, use passive listeners to not interfere with HTML5Backend
+      document.addEventListener('mousemove', handleMove, { passive: true });
     }
     
     // Store event handlers for cleanup
@@ -156,93 +148,11 @@ const DraggableCharm = ({
         document.removeEventListener('touchmove', handleMove, { passive: true });
         document.removeEventListener('mousemove', handleMove, { passive: true });
       } else {
-        document.removeEventListener('mousemove', handleMove, { passive: false });
-        document.removeEventListener('touchmove', handleMove, { passive: false });
+        document.removeEventListener('mousemove', handleMove, { passive: true });
       }
     };
   };
   
-  // Lightweight preview for mouse devices that doesn't interfere with HTML5 drop detection
-  const createLightweightPreview = () => {
-    if (dragPreview) return; // Already exists
-    
-    const previewElement = document.createElement('div');
-    previewElement.id = `drag-preview-${charm.id}`;
-    previewElement.className = 'bracelet-customizer-drag-preview';
-    previewElement.style.cssText = `
-      position: fixed;
-      width: 60px;
-      height: 60px;
-      background-image: url(${charm.image});
-      background-size: cover;
-      background-position: center;
-      background-color: transparent;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-      pointer-events: none;
-      z-index: 999999;
-      border: none;
-      opacity: 0.9;
-      transform: translate(-50%, -50%);
-      transition: none;
-      display: block !important;
-      visibility: visible !important;
-      will-change: transform;
-      top: 0px;
-      left: 0px;
-    `;
-    
-    document.body.appendChild(previewElement);
-    setDragPreview(previewElement);
-    
-    // Simpler mouse tracking for mouse devices
-    const handleMouseMove = (e) => {
-      if (!previewElement || !document.body.contains(previewElement)) return;
-      
-      const x = e.clientX;
-      const y = e.clientY;
-      
-      if (x !== undefined && y !== undefined) {
-        previewElement.style.left = x + 'px';
-        previewElement.style.top = y + 'px';
-        previewElement.style.transform = 'translate(-50%, -50%)';
-        previewElement.style.display = 'block';
-        previewElement.style.visibility = 'visible';
-      }
-    };
-    
-    // Get initial position and start tracking
-    const startTracking = () => {
-      // Try to get mouse position from recent events
-      const mouseX = window.mouseX || 100;
-      const mouseY = window.mouseY || 100;
-      
-      // Set initial position
-      if (previewElement) {
-        previewElement.style.left = mouseX + 'px';
-        previewElement.style.top = mouseY + 'px';
-        previewElement.style.transform = 'translate(-50%, -50%)';
-      }
-    };
-    
-    // Track mouse position globally (lightweight)
-    const trackGlobalMouse = (e) => {
-      window.mouseX = e.clientX;
-      window.mouseY = e.clientY;
-    };
-    
-    document.addEventListener('mousemove', trackGlobalMouse, { passive: true });
-    document.addEventListener('mousemove', handleMouseMove, { passive: true });
-    
-    // Set initial position
-    setTimeout(startTracking, 0);
-    
-    // Store cleanup function
-    previewElement._cleanup = () => {
-      document.removeEventListener('mousemove', trackGlobalMouse, { passive: true });
-      document.removeEventListener('mousemove', handleMouseMove, { passive: true });
-    };
-  };
   
   const removeDragPreview = () => {
     if (dragPreview) {
@@ -274,37 +184,18 @@ const DraggableCharm = ({
     return () => removeDragPreview();
   }, []);
 
-  // Set up HTML5 drag preview for mouse devices
+  // Set up HTML5 drag preview suppression and custom preview for mouse devices
   React.useEffect(() => {
     const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     if (!isTouch && preview) {
-      // Create a visible preview image for HTML5 drag
-      const previewImg = new Image();
-      previewImg.src = charm.image;
-      previewImg.crossOrigin = 'anonymous';
-      
-      previewImg.onload = () => {
-        // Create a canvas with the charm image for better control
-        const canvas = document.createElement('canvas');
-        canvas.width = 60;
-        canvas.height = 60;
-        const ctx = canvas.getContext('2d');
-        
-        // Draw the image centered and scaled
-        ctx.fillStyle = 'transparent';
-        ctx.fillRect(0, 0, 60, 60);
-        ctx.drawImage(previewImg, 0, 0, 60, 60);
-        
-        // Use canvas as drag preview
-        preview(canvas, { captureDraggingState: false, offsetX: 30, offsetY: 30 });
-      };
-      
-      previewImg.onerror = () => {
-        // Fallback: use the original image directly
-        preview(previewImg, { captureDraggingState: false, offsetX: 30, offsetY: 30 });
+      // Use empty image to hide HTML5 drag preview, we'll handle it with custom preview
+      const emptyImage = new Image();
+      emptyImage.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+      emptyImage.onload = () => {
+        preview(emptyImage, { captureDraggingState: false, offsetX: 0, offsetY: 0 });
       };
     }
-  }, [preview, charm.image]);
+  }, [preview]);
   
   return (
     <>
