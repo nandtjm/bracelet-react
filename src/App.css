@@ -516,5 +516,17 @@ img {
   transition: none !important;
   will-change: transform !important;
   backface-visibility: hidden !important;
+  /* Ensure it's always visible */
+  min-width: 60px !important;
+  min-height: 60px !important;
+  width: 60px !important;
+  height: 60px !important;
+}
+
+/* Specific override for any conflicting styles */
+body .bracelet-customizer-drag-preview {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 0.9 !important;
 }
 

@@ -31,11 +31,8 @@ const DraggableCharm = ({
         onDragStart(fakeEvent, charm, dragData.itemType);
       }
       
-      // Only create custom drag preview for mouse devices
-      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-      if (!isTouch) {
-        createDragPreview();
-      }
+      // Create drag preview for all devices
+      createDragPreview();
       
       return dragData;
     },
@@ -43,11 +40,8 @@ const DraggableCharm = ({
       isDragging: monitor.isDragging(),
     }),
     end: (item, monitor) => {
-      // Remove drag preview only if we created one
-      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-      if (!isTouch) {
-        removeDragPreview();
-      }
+      // Remove drag preview
+      removeDragPreview();
       
       if (onDragEnd) {
         const fakeEvent = {
@@ -86,10 +80,28 @@ const DraggableCharm = ({
       display: block !important;
       visibility: visible !important;
       will-change: transform;
+      top: -1000px;
+      left: -1000px;
     `;
     
     document.body.appendChild(previewElement);
     setDragPreview(previewElement);
+    
+    // Position it at current cursor position immediately
+    const setInitialPosition = (e) => {
+      if (e && previewElement) {
+        const x = e.clientX || 0;
+        const y = e.clientY || 0;
+        previewElement.style.left = x + 'px';
+        previewElement.style.top = y + 'px';
+      }
+    };
+    
+    // Try to get current mouse position
+    document.addEventListener('mousemove', function initPos(e) {
+      setInitialPosition(e);
+      document.removeEventListener('mousemove', initPos);
+    }, { once: true });
     
     
     // Add mouse/touch move listener to follow cursor with improved tracking
@@ -104,8 +116,19 @@ const DraggableCharm = ({
         previewElement.style.left = x + 'px';
         previewElement.style.top = y + 'px';
         previewElement.style.transform = 'translate(-50%, -50%)';
+        // Ensure it's visible
+        previewElement.style.display = 'block';
+        previewElement.style.visibility = 'visible';
       }
     };
+    
+    // Get initial mouse position when drag starts
+    const getInitialPosition = (e) => {
+      handleMove(e);
+    };
+    
+    // Listen for the first mousemove to get position
+    document.addEventListener('mousemove', getInitialPosition, { once: true });
     
     // Use different event handling based on device type
     const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
@@ -168,7 +191,9 @@ const DraggableCharm = ({
       // Use empty image for HTML5 drag to avoid default browser preview
       const emptyImage = new Image();
       emptyImage.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-      preview(emptyImage, { captureDraggingState: true });
+      emptyImage.onload = () => {
+        preview(emptyImage, { captureDraggingState: true, offsetX: 0, offsetY: 0 });
+      };
     }
   }, [preview]);
   
