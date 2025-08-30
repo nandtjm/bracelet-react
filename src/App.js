@@ -814,7 +814,14 @@ function App() {
       const emptyDropzones = document.querySelectorAll('.bc-dropzone');
       emptyDropzones.forEach(el => {
         // Check if this dropzone is empty (doesn't have a charm placed)
-        const hasCharmPlaced = el.querySelector('.bc-draggable-inner-item, [class*="charm-"], img[src*="charm"]');
+        const hasCharmPlaced = el.querySelector('.bc-draggable-inner-item') || 
+                              el.querySelector('[class*="charm-"]') ||
+                              el.querySelector('img[src*="charm"]') ||
+                              el.querySelector('img[src*="Apple"]') ||
+                              el.querySelector('img[src*="paint-palette"]') ||
+                              el.querySelector('img[alt*="charm"]') ||
+                              el.querySelector('img[alt*="Apple"]') ||
+                              el.querySelector('img[alt*="Paint Palette"]');
         
         if (!hasCharmPlaced) {
           elementsToHide.push({
@@ -848,7 +855,14 @@ function App() {
           // Only hide if it's not a placed charm container
           const isPlacedCharm = el.closest('.bc-draggable-inner-item') || 
                                el.querySelector('.bc-draggable-inner-item') ||
-                               el.querySelector('img[src*="charm"]');
+                               el.querySelector('img[src*="charm"]') ||
+                               el.querySelector('img[src*="Apple"]') ||
+                               el.querySelector('img[src*="paint-palette"]') ||
+                               el.querySelector('img[alt*="charm"]') ||
+                               el.querySelector('img[alt*="Apple"]') ||
+                               el.querySelector('img[alt*="Paint Palette"]') ||
+                               el.matches('.bc-draggable-inner-item') ||
+                               el.querySelector('[class*="charm-"]');
           
           if (!isPlacedCharm) {
             elementsToHide.push({

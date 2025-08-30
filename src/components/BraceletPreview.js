@@ -174,6 +174,7 @@ const BraceletPreview = ({
                               charm={{ ...charmInThisDropzone, currentDropzoneIndex: index }}
                               isFromGrid={false}
                               currentDropzoneIndex={index}
+                              className="bc-draggable-inner-item"
                               onDragStart={(e) => {
                                 setDraggingCharmIndex(index);
                                 handleDragStart(e, { ...charmInThisDropzone, currentDropzoneIndex: index }, 'placed-charm');

@@ -2,6 +2,16 @@ import { useState, useEffect } from 'react';
 import html2canvas from 'html2canvas';
 
 /**
+ * Decode HTML entities
+ */
+const decodeHtmlEntities = (text) => {
+  if (typeof text !== 'string') return text;
+  const textArea = document.createElement('textarea');
+  textArea.innerHTML = text;
+  return textArea.value;
+};
+
+/**
  * WordPress Integration Hook
  * 
  * This hook manages the integration between the React app and WordPress,
@@ -18,9 +28,8 @@ export const useWordPressIntegration = () => {
 
   // Check if we're running in WordPress environment
   useEffect(() => {
-    const wpMode = typeof window !== 'undefined' && 
-                   window.braceletCustomizerData && 
-                   window.braceletCustomizerData.restUrl;
+    const wpConfig = typeof window !== 'undefined' && window.BraceletCustomizerConfig;
+    const wpMode = wpConfig && wpConfig.apiBase;
     
     // Check if we're in modal mode (has modal container)
     const modalMode = wpMode && document.getElementById('bracelet-customizer-modal');
@@ -36,7 +45,24 @@ export const useWordPressIntegration = () => {
     setIsModalMode(modalMode);
     
     if (wpMode) {
-      setWpData(window.braceletCustomizerData);
+      // Transform WordPress config to expected format
+      setWpData({
+        restUrl: wpConfig.apiBase,
+        restNonce: wpConfig.nonce,
+        ajaxUrl: wpConfig.ajaxUrl,
+        nonce: wpConfig.ajaxNonce,
+        imagesUrl: wpConfig.pluginUrl + 'assets/images/',
+        cartUrl: wpConfig.woocommerce?.cartUrl,
+        checkoutUrl: wpConfig.woocommerce?.checkoutUrl,
+        currency: {
+          symbol: decodeHtmlEntities(wpConfig.woocommerce?.currencySymbol) || '$',
+          code: wpConfig.woocommerce?.currency || 'USD',
+          decimals: wpConfig.woocommerce?.priceDecimals || 2,
+          decimalSeparator: wpConfig.woocommerce?.priceDecimalSep || '.',
+          thousandSeparator: wpConfig.woocommerce?.priceThousandSep || ',',
+          position: 'left' // Default position, can be configured later
+        }
+      });
     }
     
     setLoading(false);
@@ -418,7 +444,7 @@ export const useWordPressIntegration = () => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
 
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         img.onload = () => {
           try {
             // Draw the bracelet image centered
