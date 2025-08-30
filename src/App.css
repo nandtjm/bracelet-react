@@ -253,6 +253,14 @@ img {
   pointer-events: none;
 }
 
+/* Enhanced magnetic zone for large screens */
+@media (min-width: 1024px) and (pointer: fine) {
+  .bc-magnetic-zone {
+    width: 300%;
+    height: 200%;
+  }
+}
+
 /* Loading spinner animation */
 @keyframes spin {
   0% { transform: rotate(0deg); }
@@ -387,10 +395,21 @@ img {
 @media (min-width: 1024px) and (pointer: fine) {
   .bc-dropzone {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid rgba(218, 159, 196, 0.3);
   }
   
   .bc-dropzone:hover {
     transform: scale(1.05);
+    border-color: rgba(218, 159, 196, 0.6);
+    box-shadow: 0 0 15px 6px rgba(218, 159, 196, 0.4);
+  }
+  
+  /* Enhanced drop zone hover states */
+  .bc-dropzone-full {
+    background-color: rgba(218, 159, 196, 0.8) !important;
+    transform: scale(1.15) !important;
+    border: 3px solid rgba(218, 159, 196, 0.9) !important;
+    box-shadow: 0 0 20px 8px rgba(218, 159, 196, 0.6) !important;
   }
   
   .bc-draggable-inner-item {

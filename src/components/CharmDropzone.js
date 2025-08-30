@@ -43,7 +43,11 @@ const CharmDropzone = ({
       }
     },
     hover: (_, monitor) => {
-      if (onDragOver && monitor.isOver({ shallow: true })) {
+      // Use different hover detection for touch vs mouse
+      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      const isOverTarget = isTouch ? monitor.isOver() : monitor.isOver({ shallow: true });
+      
+      if (onDragOver && isOverTarget) {
         const fakeEvent = {
           preventDefault: () => {},
           stopPropagation: () => {}
@@ -51,10 +55,15 @@ const CharmDropzone = ({
         onDragOver(fakeEvent);
       }
     },
-    collect: (monitor) => ({
-      isOver: monitor.isOver({ shallow: true }),
-      canDrop: monitor.canDrop() && !isOccupied,
-    }),
+    collect: (monitor) => {
+      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      const isOverTarget = isTouch ? monitor.isOver() : monitor.isOver({ shallow: true });
+      
+      return {
+        isOver: isOverTarget,
+        canDrop: monitor.canDrop() && !isOccupied,
+      };
+    },
     canDrop: () => !isOccupied
   }), [dropzoneIndex, isOccupied, onDrop, onDragOver]);
 

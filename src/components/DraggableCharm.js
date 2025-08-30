@@ -31,8 +31,11 @@ const DraggableCharm = ({
         onDragStart(fakeEvent, charm, dragData.itemType);
       }
       
-      // Create drag preview element
-      createDragPreview();
+      // Only create custom drag preview for mouse devices
+      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      if (!isTouch) {
+        createDragPreview();
+      }
       
       return dragData;
     },
@@ -40,8 +43,11 @@ const DraggableCharm = ({
       isDragging: monitor.isDragging(),
     }),
     end: (item, monitor) => {
-      // Remove drag preview
-      removeDragPreview();
+      // Remove drag preview only if we created one
+      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      if (!isTouch) {
+        removeDragPreview();
+      }
       
       if (onDragEnd) {
         const fakeEvent = {
@@ -155,6 +161,17 @@ const DraggableCharm = ({
     return () => removeDragPreview();
   }, []);
 
+  // Set up HTML5 drag preview for better native support on mouse devices
+  React.useEffect(() => {
+    const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (!isTouch && preview) {
+      // Use empty image for HTML5 drag to avoid default browser preview
+      const emptyImage = new Image();
+      emptyImage.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+      preview(emptyImage, { captureDraggingState: true });
+    }
+  }, [preview]);
+  
   return (
     <>
       
