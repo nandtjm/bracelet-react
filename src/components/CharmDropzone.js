@@ -28,10 +28,15 @@ const CharmDropzone = ({
         };
         
         if (onDrop) {
-          // Add a small delay to ensure drag preview is cleaned up first
-          setTimeout(() => {
+          // For touch devices, no delay needed; for mouse devices, small delay for cleanup
+          const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+          if (isTouch) {
             onDrop(fakeDropEvent, dropzoneIndex);
-          }, 10);
+          } else {
+            setTimeout(() => {
+              onDrop(fakeDropEvent, dropzoneIndex);
+            }, 10);
+          }
         }
         
         return { dropzoneIndex }; // Return data to indicate successful drop

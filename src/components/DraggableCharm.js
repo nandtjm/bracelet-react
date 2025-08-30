@@ -90,9 +90,6 @@ const DraggableCharm = ({
     const handleMove = (e) => {
       if (!previewElement || !document.body.contains(previewElement)) return;
       
-      // Prevent default to avoid browser conflicts
-      e.preventDefault();
-      
       const x = e.clientX || (e.touches && e.touches[0]?.clientX);
       const y = e.clientY || (e.touches && e.touches[0]?.clientY);
       
@@ -104,14 +101,27 @@ const DraggableCharm = ({
       }
     };
     
-    // Use passive false for preventDefault to work
-    document.addEventListener('mousemove', handleMove, { passive: false });
-    document.addEventListener('touchmove', handleMove, { passive: false });
+    // Use different event handling based on device type
+    const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+    if (isTouch) {
+      // For touch devices, use passive listeners to avoid blocking
+      document.addEventListener('touchmove', handleMove, { passive: true });
+      document.addEventListener('mousemove', handleMove, { passive: true });
+    } else {
+      // For mouse devices, use active listeners for better control
+      document.addEventListener('mousemove', handleMove, { passive: false });
+      document.addEventListener('touchmove', handleMove, { passive: false });
+    }
     
     // Store event handlers for cleanup
     previewElement._cleanup = () => {
-      document.removeEventListener('mousemove', handleMove, { passive: false });
-      document.removeEventListener('touchmove', handleMove, { passive: false });
+      if (isTouch) {
+        document.removeEventListener('touchmove', handleMove, { passive: true });
+        document.removeEventListener('mousemove', handleMove, { passive: true });
+      } else {
+        document.removeEventListener('mousemove', handleMove, { passive: false });
+        document.removeEventListener('touchmove', handleMove, { passive: false });
+      }
     };
   };
   
