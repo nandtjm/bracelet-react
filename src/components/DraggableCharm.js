@@ -31,26 +31,13 @@ const DraggableCharm = ({
         onDragStart(fakeEvent, charm, dragData.itemType);
       }
       
-      // Create drag preview based on device type for optimal performance
+      // Create drag preview based on device type
       const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
       if (isTouch) {
-        // For touch devices, always create custom preview
+        // For touch devices, create full custom preview
         createDragPreview();
-      } else {
-        // For mouse devices, create lighter preview that doesn't interfere with HTML5Backend
-        // But make sure it's visible immediately
-        createLightweightPreview();
-        
-        // Ensure immediate visibility by triggering a mouse move event
-        setTimeout(() => {
-          const mouseEvent = new MouseEvent('mousemove', {
-            clientX: window.mouseX || 100,
-            clientY: window.mouseY || 100,
-            bubbles: true
-          });
-          document.dispatchEvent(mouseEvent);
-        }, 10);
       }
+      // For mouse devices, rely primarily on HTML5 drag preview
       
       return dragData;
     },
@@ -58,8 +45,11 @@ const DraggableCharm = ({
       isDragging: monitor.isDragging(),
     }),
     end: (_, _monitor) => {
-      // Remove drag preview - works for both lightweight and full previews
-      removeDragPreview();
+      // Remove drag preview only for touch devices
+      const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      if (isTouch) {
+        removeDragPreview();
+      }
       
       if (onDragEnd) {
         const fakeEvent = {
@@ -284,18 +274,37 @@ const DraggableCharm = ({
     return () => removeDragPreview();
   }, []);
 
-  // Set up HTML5 drag preview suppression for mouse devices to ensure proper drop detection
+  // Set up HTML5 drag preview for mouse devices
   React.useEffect(() => {
     const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     if (!isTouch && preview) {
-      // Use empty image for HTML5 drag to avoid default browser preview interfering with drop zones
-      const emptyImage = new Image();
-      emptyImage.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
-      emptyImage.onload = () => {
-        preview(emptyImage, { captureDraggingState: false, offsetX: 0, offsetY: 0 });
+      // Create a visible preview image for HTML5 drag
+      const previewImg = new Image();
+      previewImg.src = charm.image;
+      previewImg.crossOrigin = 'anonymous';
+      
+      previewImg.onload = () => {
+        // Create a canvas with the charm image for better control
+        const canvas = document.createElement('canvas');
+        canvas.width = 60;
+        canvas.height = 60;
+        const ctx = canvas.getContext('2d');
+        
+        // Draw the image centered and scaled
+        ctx.fillStyle = 'transparent';
+        ctx.fillRect(0, 0, 60, 60);
+        ctx.drawImage(previewImg, 0, 0, 60, 60);
+        
+        // Use canvas as drag preview
+        preview(canvas, { captureDraggingState: false, offsetX: 30, offsetY: 30 });
+      };
+      
+      previewImg.onerror = () => {
+        // Fallback: use the original image directly
+        preview(previewImg, { captureDraggingState: false, offsetX: 30, offsetY: 30 });
       };
     }
-  }, [preview]);
+  }, [preview, charm.image]);
   
   return (
     <>
