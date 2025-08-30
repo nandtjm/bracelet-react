@@ -38,7 +38,18 @@ const DraggableCharm = ({
         createDragPreview();
       } else {
         // For mouse devices, create lighter preview that doesn't interfere with HTML5Backend
+        // But make sure it's visible immediately
         createLightweightPreview();
+        
+        // Ensure immediate visibility by triggering a mouse move event
+        setTimeout(() => {
+          const mouseEvent = new MouseEvent('mousemove', {
+            clientX: window.mouseX || 100,
+            clientY: window.mouseY || 100,
+            bubbles: true
+          });
+          document.dispatchEvent(mouseEvent);
+        }, 10);
       }
       
       return dragData;
@@ -46,7 +57,7 @@ const DraggableCharm = ({
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
-    end: (item, monitor) => {
+    end: (_, _monitor) => {
       // Remove drag preview - works for both lightweight and full previews
       removeDragPreview();
       
@@ -181,14 +192,14 @@ const DraggableCharm = ({
       pointer-events: none;
       z-index: 999999;
       border: none;
-      opacity: 0.8;
+      opacity: 0.9;
       transform: translate(-50%, -50%);
       transition: none;
       display: block !important;
       visibility: visible !important;
       will-change: transform;
-      top: -1000px;
-      left: -1000px;
+      top: 0px;
+      left: 0px;
     `;
     
     document.body.appendChild(previewElement);
@@ -204,16 +215,41 @@ const DraggableCharm = ({
       if (x !== undefined && y !== undefined) {
         previewElement.style.left = x + 'px';
         previewElement.style.top = y + 'px';
+        previewElement.style.transform = 'translate(-50%, -50%)';
         previewElement.style.display = 'block';
         previewElement.style.visibility = 'visible';
       }
     };
     
-    // Use passive listeners to not interfere with HTML5 drop detection
+    // Get initial position and start tracking
+    const startTracking = () => {
+      // Try to get mouse position from recent events
+      const mouseX = window.mouseX || 100;
+      const mouseY = window.mouseY || 100;
+      
+      // Set initial position
+      if (previewElement) {
+        previewElement.style.left = mouseX + 'px';
+        previewElement.style.top = mouseY + 'px';
+        previewElement.style.transform = 'translate(-50%, -50%)';
+      }
+    };
+    
+    // Track mouse position globally (lightweight)
+    const trackGlobalMouse = (e) => {
+      window.mouseX = e.clientX;
+      window.mouseY = e.clientY;
+    };
+    
+    document.addEventListener('mousemove', trackGlobalMouse, { passive: true });
     document.addEventListener('mousemove', handleMouseMove, { passive: true });
+    
+    // Set initial position
+    setTimeout(startTracking, 0);
     
     // Store cleanup function
     previewElement._cleanup = () => {
+      document.removeEventListener('mousemove', trackGlobalMouse, { passive: true });
       document.removeEventListener('mousemove', handleMouseMove, { passive: true });
     };
   };
