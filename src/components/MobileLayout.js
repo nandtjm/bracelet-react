@@ -172,25 +172,19 @@ const MobileLayout = ({
           boxShadow: '0 -4px 6px -1px rgba(0, 0, 0, 0.1)'
         }}>
           {/* Bottom Panel Content - Scrollable */}
-          <div style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: '20px',
-            paddingTop: steps[currentStep - 1] === 'Charms' ? '0px' : '20px', // No top padding on Charms step
-            paddingBottom: '100px' // Space for sticky button
-          }}>
+          <div 
+            className="bc-mobile-content-spacing"
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: '20px',
+              paddingTop: steps[currentStep - 1] === 'Charms' ? '0px' : '20px' // No top padding on Charms step
+            }}>
             {bottomPanelContent || renderStepContent?.()}
           </div>
 
-          {/* Sticky Bottom Button */}
-          <div style={{
-            position: 'sticky',
-            bottom: 0,
-            backgroundColor: 'white',
-            padding: '16px 20px',
-            borderTop: '1px solid #f0f0f0',
-            zIndex: 50
-          }}>
+          {/* Fixed Bottom Button */}
+          <div className="bc-mobile-fixed-button">
             {renderBottomButton?.()}
           </div>
         </div>

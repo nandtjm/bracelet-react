@@ -530,3 +530,52 @@ body .bracelet-customizer-drag-preview {
   opacity: 0.9 !important;
 }
 
+/* Mobile button fix for better viewport handling */
+.bc-mobile-fixed-button {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  background-color: white !important;
+  border-top: 1px solid #f0f0f0 !important;
+  z-index: 1000 !important;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1) !important;
+  padding: 16px 20px !important;
+  padding-bottom: max(16px, calc(16px + env(safe-area-inset-bottom))) !important;
+}
+
+/* Ensure proper spacing for mobile viewports */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .bc-mobile-fixed-button {
+    padding-bottom: calc(16px + env(safe-area-inset-bottom)) !important;
+  }
+}
+
+/* Additional mobile browser fixes */
+@media (max-width: 768px) {
+  .bc-mobile-fixed-button {
+    /* Ensure button stays visible on all mobile browsers */
+    min-height: 60px;
+    position: fixed !important;
+    bottom: env(keyboard-inset-height, 0px) !important;
+  }
+  
+  /* Fix for iOS Safari and other mobile browsers */
+  @supports (-webkit-touch-callout: none) {
+    .bc-mobile-fixed-button {
+      padding-bottom: max(20px, calc(20px + env(safe-area-inset-bottom))) !important;
+    }
+  }
+}
+
+/* Mobile content spacing for fixed button */
+.bc-mobile-content-spacing {
+  padding-bottom: max(120px, calc(80px + env(safe-area-inset-bottom))) !important;
+}
+
+@media (max-width: 768px) {
+  .bc-mobile-content-spacing {
+    padding-bottom: max(140px, calc(100px + env(safe-area-inset-bottom))) !important;
+  }
+}
+
