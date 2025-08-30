@@ -383,6 +383,31 @@ img {
   transform: scale(1.1);
 }
 
+/* Large screen drag improvements */
+@media (min-width: 1024px) {
+  .bc-dropzone {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .bc-dropzone:hover {
+    transform: scale(1.05);
+  }
+  
+  .bc-draggable-inner-item {
+    touch-action: none;
+    -webkit-user-drag: element;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  .bc-draggable-inner-item:active {
+    cursor: grabbing;
+    transform: scale(1.05);
+  }
+}
+
 /* Enhanced drag support for Chrome device toolbar mode */
 [draggable="true"] {
   -webkit-user-drag: element !important;
@@ -392,10 +417,29 @@ img {
   -ms-user-select: none !important;
   user-select: none !important;
   /* Ensure touch events work */
-  touch-action: auto !important;
+  touch-action: none !important;
   /* Force enable drag in all modes */
   -webkit-touch-callout: none !important;
   -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+}
+
+/* Improve drag feedback on large screens */
+@media (min-width: 1280px) {
+  .bracelet-customizer-drag-preview {
+    width: 70px !important;
+    height: 70px !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  .bc-dropzone {
+    height: 3.5rem;
+    width: 3.5rem;
+  }
+  
+  .bc-dropzone-full {
+    background-color: rgba(218, 159, 196, 0.7) !important;
+    transform: scale(1.1) !important;
+  }
 }
 
 .bc-draggable-inner-item-image {
@@ -422,13 +466,15 @@ img {
   pointer-events: none !important;
   display: block !important;
   visibility: visible !important;
-  opacity: 0.8 !important;
+  opacity: 0.9 !important;
   background-repeat: no-repeat !important;
   background-color: transparent !important;
   border: none !important;
   border-radius: 12px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
   transform: translate(-50%, -50%) !important;
   transition: none !important;
+  will-change: transform !important;
+  backface-visibility: hidden !important;
 }
 

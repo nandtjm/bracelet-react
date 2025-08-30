@@ -28,12 +28,17 @@ const CharmDropzone = ({
         };
         
         if (onDrop) {
-          onDrop(fakeDropEvent, dropzoneIndex);
+          // Add a small delay to ensure drag preview is cleaned up first
+          setTimeout(() => {
+            onDrop(fakeDropEvent, dropzoneIndex);
+          }, 10);
         }
+        
+        return { dropzoneIndex }; // Return data to indicate successful drop
       }
     },
-    hover: (item, monitor) => {
-      if (onDragOver) {
+    hover: (_, monitor) => {
+      if (onDragOver && monitor.isOver({ shallow: true })) {
         const fakeEvent = {
           preventDefault: () => {},
           stopPropagation: () => {}
@@ -42,7 +47,7 @@ const CharmDropzone = ({
       }
     },
     collect: (monitor) => ({
-      isOver: monitor.isOver(),
+      isOver: monitor.isOver({ shallow: true }),
       canDrop: monitor.canDrop() && !isOccupied,
     }),
     canDrop: () => !isOccupied

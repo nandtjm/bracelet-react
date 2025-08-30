@@ -74,37 +74,44 @@ const DraggableCharm = ({
       pointer-events: none;
       z-index: 999999;
       border: none;
-      opacity: 0.8;
+      opacity: 0.9;
       transform: translate(-50%, -50%);
       transition: none;
       display: block !important;
       visibility: visible !important;
+      will-change: transform;
     `;
     
     document.body.appendChild(previewElement);
     setDragPreview(previewElement);
     
     
-    // Add mouse/touch move listener to follow cursor
+    // Add mouse/touch move listener to follow cursor with improved tracking
     const handleMove = (e) => {
-      if (!previewElement) return;
+      if (!previewElement || !document.body.contains(previewElement)) return;
+      
+      // Prevent default to avoid browser conflicts
+      e.preventDefault();
       
       const x = e.clientX || (e.touches && e.touches[0]?.clientX);
       const y = e.clientY || (e.touches && e.touches[0]?.clientY);
       
-      if (x && y) {
+      if (x !== undefined && y !== undefined) {
+        // Use transform for better performance and precision
         previewElement.style.left = x + 'px';
         previewElement.style.top = y + 'px';
+        previewElement.style.transform = 'translate(-50%, -50%)';
       }
     };
     
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('touchmove', handleMove);
+    // Use passive false for preventDefault to work
+    document.addEventListener('mousemove', handleMove, { passive: false });
+    document.addEventListener('touchmove', handleMove, { passive: false });
     
     // Store event handlers for cleanup
     previewElement._cleanup = () => {
-      document.removeEventListener('mousemove', handleMove);
-      document.removeEventListener('touchmove', handleMove);
+      document.removeEventListener('mousemove', handleMove, { passive: false });
+      document.removeEventListener('touchmove', handleMove, { passive: false });
     };
   };
   
