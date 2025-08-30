@@ -31,7 +31,20 @@ const DraggableCharm = ({
         onDragStart(fakeEvent, charm, dragData.itemType);
       }
       
-      // Create drag preview for all devices
+      // Create drag preview for all devices and get initial position
+      // Try to get current cursor position from recent mouse events
+      const getCurrentMousePosition = () => {
+        return {
+          x: window.lastMouseX || 100,
+          y: window.lastMouseY || 100
+        };
+      };
+      
+      // Store initial position for preview
+      const initialPos = getCurrentMousePosition();
+      window.dragStartX = initialPos.x;
+      window.dragStartY = initialPos.y;
+      
       createDragPreview();
       
       return dragData;
@@ -91,35 +104,23 @@ const DraggableCharm = ({
     document.body.appendChild(previewElement);
     setDragPreview(previewElement);
     
-    // Force immediate visibility check
-    setTimeout(() => {
-      if (previewElement && document.body.contains(previewElement)) {
-        previewElement.setAttribute('style', `
-          position: fixed !important;
-          left: 100px !important;
-          top: 100px !important;
-          width: 60px !important;
-          height: 60px !important;
-          background-image: url(${charm.image}) !important;
-          background-size: cover !important;
-          background-position: center !important;
-          background-color: transparent !important;
-          border-radius: 12px !important;
-          box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
-          pointer-events: none !important;
-          z-index: 999999 !important;
-          border: none !important;
-          opacity: 0.9 !important;
-          transform: translate(-50%, -50%) !important;
-          transition: none !important;
-          display: block !important;
-          visibility: visible !important;
-          will-change: transform !important;
-          min-width: 60px !important;
-          min-height: 60px !important;
-        `);
-      }
-    }, 10);
+    // Track initial mouse position and make preview follow cursor immediately
+    let isTracking = false;
+    
+    const startCursorTracking = () => {
+      if (isTracking) return;
+      isTracking = true;
+      
+      // Get current mouse position from global tracking or drag start position
+      const initialX = window.lastMouseX || window.dragStartX || 100;
+      const initialY = window.lastMouseY || window.dragStartY || 100;
+      
+      // Set initial position and make sure it's visible
+      handleMove({ clientX: initialX, clientY: initialY });
+    };
+    
+    // Start tracking immediately
+    setTimeout(startCursorTracking, 10);
     
     // Position it at current cursor position immediately
     const setInitialPosition = (e) => {
@@ -182,25 +183,37 @@ const DraggableCharm = ({
     // Listen for the first mousemove to get position
     document.addEventListener('mousemove', getInitialPosition, { once: true });
     
+    // Global mouse tracking for better position awareness
+    const trackGlobalMouse = (e) => {
+      window.lastMouseX = e.clientX;
+      window.lastMouseY = e.clientY;
+      handleMove(e);
+    };
+    
     // Use device-appropriate event handling to not interfere with drop detection
     const isTouch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
     
     if (isTouch) {
       // For touch devices, use comprehensive tracking
       document.addEventListener('touchmove', handleMove, { passive: true });
-      document.addEventListener('mousemove', handleMove, { passive: true });
+      document.addEventListener('mousemove', trackGlobalMouse, { passive: true });
     } else {
       // For mouse devices, use passive listeners to not interfere with HTML5Backend
-      document.addEventListener('mousemove', handleMove, { passive: true });
+      document.addEventListener('mousemove', trackGlobalMouse, { passive: true });
+      document.addEventListener('dragstart', (e) => {
+        // Track initial drag position
+        handleMove(e);
+      }, { passive: true });
     }
     
     // Store event handlers for cleanup
     previewElement._cleanup = () => {
       if (isTouch) {
         document.removeEventListener('touchmove', handleMove, { passive: true });
-        document.removeEventListener('mousemove', handleMove, { passive: true });
+        document.removeEventListener('mousemove', trackGlobalMouse, { passive: true });
       } else {
-        document.removeEventListener('mousemove', handleMove, { passive: true });
+        document.removeEventListener('mousemove', trackGlobalMouse, { passive: true });
+        document.removeEventListener('dragstart', handleMove, { passive: true });
       }
     };
   };
