@@ -211,18 +211,29 @@ export const useWordPressIntegration = () => {
    * Get image URL with WordPress plugin path
    */
   const getImageUrl = (imagePath) => {
-    if (!isWordPressMode || !wpData) {
-      return imagePath; // Return original path for standalone mode
+    // Handle invalid imagePath values
+    if (!imagePath || imagePath === 'false' || imagePath === false) {
+      return ''; // Return empty string instead of false to prevent 404s
     }
     
-    // If already a full URL, return as-is
+    // If already a full URL (dynamic HTTP/HTTPS), return as-is
     if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
       return imagePath;
+    }
+    
+    if (!isWordPressMode || !wpData) {
+      return imagePath; // Return original path for standalone mode
     }
     
     // If starts with /, prepend plugin images URL
     if (imagePath.startsWith('/')) {
       return wpData.imagesUrl + imagePath.substring(1);
+    }
+    
+    // Handle paths that already start with "images/" to prevent double images in URL
+    if (imagePath.startsWith('images/')) {
+      // Use plugin URL directly since imagesUrl already ends with 'assets/images/'
+      return wpData.pluginUrl + 'assets/' + imagePath;
     }
     
     // Otherwise prepend full images URL
@@ -278,11 +289,9 @@ export const useWordPressIntegration = () => {
    */
   const uploadScreenshotImage = async (customizationId, screenshotDataUrl) => {
     if (!isWordPressMode || !wpData) {
-      console.log('Not in WordPress mode or no wpData available');
       return null;
     }
 
-    console.log('Starting screenshot upload for customization ID:', customizationId);
 
     try {
       // Convert data URL to blob
@@ -307,10 +316,8 @@ export const useWordPressIntegration = () => {
       }
 
       const result = await uploadResponse.json();
-      console.log('Screenshot upload response:', result);
 
       if (result.success && result.data?.image_url) {
-        console.log('Screenshot uploaded successfully:', result.data.image_url);
         return result.data.image_url;
       } else {
         console.error('Failed to upload screenshot:', result.data?.message || 'Unknown error');
@@ -328,11 +335,9 @@ export const useWordPressIntegration = () => {
    */
   const uploadPreviewImage = async (customizationId) => {
     if (!isWordPressMode || !wpData) {
-      console.log('Not in WordPress mode or no wpData available');
       return null;
     }
 
-    console.log('Starting preview image capture for customization ID:', customizationId);
 
     try {
       // Add a small delay to ensure all elements are rendered
@@ -343,24 +348,17 @@ export const useWordPressIntegration = () => {
                               document.querySelector('.product-canvas') ||
                               document.querySelector('.product-overlapping');
       
-      console.log('Preview container found:', !!previewContainer);
-      console.log('Preview container element:', previewContainer);
-      console.log('Preview container children:', previewContainer?.children?.length);
       
       // Check for letters and charms in the preview
       const letterElements = document.querySelectorAll('.product-overlapping-letter');
       const charmElements = document.querySelectorAll('._draggableInnerItem_1xii1_16');
       const mainBraceletImage = document.querySelector('.main-bracelet-image');
       
-      console.log('Found letter elements:', letterElements.length);
-      console.log('Found charm elements:', charmElements.length);
-      console.log('Found main bracelet image:', !!mainBraceletImage);
       
       if (previewContainer) {
         // Use html2canvas to capture the entire preview
         if (html2canvas) {
           try {
-            console.log('Attempting html2canvas capture...');
             
             // Give extra time for all images to load
             await new Promise(resolve => setTimeout(resolve, 500));
@@ -376,24 +374,19 @@ export const useWordPressIntegration = () => {
               removeContainer: false,
               imageTimeout: 5000, // Wait longer for images to load
               onclone: (clonedDoc) => {
-                console.log('html2canvas cloned document, checking elements...');
                 const clonedImages = clonedDoc.querySelectorAll('img');
-                console.log('Cloned images count:', clonedImages.length);
               }
             });
 
-            console.log('html2canvas capture successful, canvas size:', canvas.width, 'x', canvas.height);
 
             // Convert to base64
             const imageData = canvas.toDataURL('image/png');
-            console.log('Image data length:', imageData.length);
 
             // Upload to WordPress
             const formData = new FormData();
             formData.append('customization_id', customizationId);
             formData.append('image_data', imageData);
 
-            console.log('Uploading to WordPress...');
             const response = await fetch(`${wpData.restUrl}preview-image`, {
               method: 'POST',
               headers: {
@@ -407,16 +400,13 @@ export const useWordPressIntegration = () => {
             }
 
             const result = await response.json();
-            console.log('Upload successful, result:', result);
             return result.image_url;
           } catch (html2canvasError) {
             console.error('html2canvas failed, falling back to manual canvas:', html2canvasError);
           }
         } else {
-          console.log('html2canvas not available, using manual canvas');
         }
       } else {
-        console.log('No preview container found');
       }
 
       // Fallback: Find the main bracelet image element and composite the preview
@@ -426,7 +416,6 @@ export const useWordPressIntegration = () => {
         return null;
       }
 
-      console.log('Fallback to manual composite image creation...');
 
       // Create canvas and capture the current visible bracelet image
       const canvas = document.createElement('canvas');
@@ -500,7 +489,6 @@ export const useWordPressIntegration = () => {
               return response.json();
             })
             .then(result => {
-              console.log('Preview image uploaded successfully:', result.image_url);
               resolve(result.image_url);
             })
             .catch(err => {

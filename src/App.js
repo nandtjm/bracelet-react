@@ -106,7 +106,6 @@ function App() {
       setLoading(true);
       
       try {
-        console.log('App - isWordPressMode:', isWordPressMode);
         if (isWordPressMode) {
           // Fetch from WordPress API
           const [braceletsResponse, charmsResponse] = await Promise.all([
@@ -157,25 +156,13 @@ function App() {
   // Debug bracelet data when loaded
   useEffect(() => {
     if (bracelets.length > 0) {
-      console.log(`Bracelets loaded: ${bracelets.length}, source: ${dataSource}`);
       const selectedBracelet = getSelectedBracelet();
-      if (selectedBracelet) {
-        console.log('Selected bracelet all:', selectedBracelet);
-        console.log('Selected bracelet:', selectedBracelet.id);
-        console.log('Selected bracelet category:', selectedBracelet.category);
-        console.log('Space stone images available:', selectedBracelet.spaceStoneImages ? Object.keys(selectedBracelet.spaceStoneImages).length : 0);
-        if (selectedBracelet.spaceStoneImages) {
-          console.log('Space stone keys:', Object.keys(selectedBracelet.spaceStoneImages));
-        }
-      }
     }
   }, [bracelets, customization.braceletStyle]);
   
   // Auto-select product when data is loaded and we have an initialProductId
   useEffect(() => {
     if (!loading && initialProductId && bracelets.length > 0) {
-      console.log('Attempting to auto-select product with ID:', initialProductId);
-      console.log('Available bracelets:', bracelets.map(b => ({ id: b.id, woocommerce_id: b.woocommerce_id, name: b.name })));
       
       // Find the bracelet by WooCommerce ID (prioritize this since it's the actual product ID)
       const targetBracelet = bracelets.find(bracelet => 
@@ -184,7 +171,6 @@ function App() {
       );
       
       if (targetBracelet) {
-        console.log('Found matching bracelet:', targetBracelet);
         setCustomization(prev => ({
           ...prev,
           braceletStyle: targetBracelet.id
@@ -201,7 +187,6 @@ function App() {
           setSelectedCategory('No Words');
         }
       } else {
-        console.log('No matching bracelet found for product ID:', initialProductId);
       }
     }
   }, [loading, initialProductId, bracelets]);
@@ -253,9 +238,6 @@ function App() {
       return charms;
     }
     
-    console.log(`Filtering charms for category: "${categoryName}"`);
-    console.log('Available categories map:', charmCategoriesMap);
-    console.log('Available charms:', charms.map(c => ({ name: c.name, category: c.category })));
     
     return charms.filter(charm => {
       if (!charm.category) return false;
@@ -265,17 +247,14 @@ function App() {
         displayName === categoryName
       )?.[0];
       
-      console.log(`For charm "${charm.name}": category="${charm.category}", looking for="${categoryName}", found slug="${categorySlug}"`);
       
       // Match either by slug or display name
       if (categorySlug && charm.category === categorySlug) {
-        console.log(`✓ Matched by slug: ${charm.category} === ${categorySlug}`);
         return true;
       }
       
       // Direct slug match
       if (charm.category === categoryName) {
-        console.log(`✓ Direct match: ${charm.category} === ${categoryName}`);
         return true;
       }
       
@@ -289,12 +268,10 @@ function App() {
       if (legacyMappings[categoryName]) {
         const isLegacyMatch = legacyMappings[categoryName].includes(charm.category);
         if (isLegacyMatch) {
-          console.log(`✓ Legacy match: ${charm.category} in ${legacyMappings[categoryName]}`);
         }
         return isLegacyMatch;
       }
       
-      console.log(`✗ No match for charm "${charm.name}"`);
       return false;
     });
   };
@@ -397,7 +374,6 @@ function App() {
     const selectedBracelet = getSelectedBracelet();
     
     // Debug logging
-    console.log(`getSpaceStoneImagePath: braceletType=${braceletType}, braceletPosition=${braceletPosition}, totalCharCount=${totalCharCount}`);
     
     // Use space stone images from the API if available
     if (selectedBracelet && selectedBracelet.spaceStoneImages) {
@@ -405,16 +381,11 @@ function App() {
       const formatCode = totalCharCount % 2 === 1 ? 'O' : 'E'; // O for odd word length, E for even word length
       const stoneKey = `${urlPosition}_${formatCode}`;
       
-      console.log(`Space stone lookup: key=${stoneKey}, found=${!!selectedBracelet.spaceStoneImages[stoneKey]}`);
-      console.log('Available space stone keys:', Object.keys(selectedBracelet.spaceStoneImages));
       if (selectedBracelet.spaceStoneImages[stoneKey]) {
-        console.log(`Using WordPress space stone: ${selectedBracelet.spaceStoneImages[stoneKey]}`);
         return selectedBracelet.spaceStoneImages[stoneKey];
       } else {
-        console.log(`Space stone not found for key ${stoneKey}, falling back to constructed path`);
       }
     } else {
-      console.log('No spaceStoneImages data available from WordPress API');
     }
     
     // Fallback to constructed path if no API data available
@@ -491,17 +462,14 @@ function App() {
           price: parseFloat(color.price) || 0,
           color: color.color || '#ffffff'
         }));
-      console.log('getLetterColors - returning product-specific colors:', colors);
     }
     // Fallback to global WordPress data  
     else if (isWordPressMode && wpData?.letterColors) {
       colors = wpData.letterColors;
-      console.log('getLetterColors - returning wpData colors:', colors);
     }
     // Final fallback to mock data
     else {
       colors = mockData.letterColors;
-      console.log('getLetterColors - returning mock data colors:', colors);
     }
     
     // Deduplicate by id to prevent duplicates
@@ -509,9 +477,6 @@ function App() {
       index === self.findIndex((c) => c.id === color.id)
     );
     
-    if (uniqueColors.length !== colors.length) {
-      console.warn('getLetterColors - Found duplicate colors, removed:', colors.length - uniqueColors.length);
-    }
     
     return uniqueColors;
   };
@@ -529,9 +494,7 @@ function App() {
 
   // Handle drag and drop functionality
   const handleDragStart = (e, item, itemType) => {
-    // console.log('Drag started with item:', item, 'type:', itemType);
     const dragData = { item, itemType };
-    // console.log('Setting draggedItem to:', dragData);
     setDraggedItem(dragData);
     setIsDragInProgress(true);
     
@@ -562,7 +525,6 @@ function App() {
       e.stopPropagation();
     }
     
-    // console.log('Drop event triggered on dropzone:', dropzoneIndex, 'with draggedItem:', draggedItem);
     
     // Fallback: try to get data from dataTransfer if draggedItem is null (HTML5 backend only)
     let currentDraggedItem = draggedItem;
@@ -571,10 +533,8 @@ function App() {
         const transferData = e.dataTransfer.getData('text/plain');
         if (transferData) {
           currentDraggedItem = JSON.parse(transferData);
-          // console.log('Retrieved draggedItem from dataTransfer:', currentDraggedItem);
         }
       } catch (error) {
-        // console.log('Failed to parse dataTransfer data:', error);
       }
     }
     
@@ -584,7 +544,6 @@ function App() {
       // Check if this dropzone already has a charm
       const existingCharmInDropzone = customization.selectedCharms.find(c => c.dropzoneIndex === dropzoneIndex);
       if (existingCharmInDropzone) {
-        // console.log('Dropzone already occupied');
         setDraggedItem(null);
         return;
       }
@@ -602,7 +561,6 @@ function App() {
           return c;
         });
         
-        // console.log('Moving charm to new dropzone:', dropzoneIndex);
         
         setCustomization({
           ...customization,
@@ -616,7 +574,6 @@ function App() {
           positionId: `dropzone-${dropzoneIndex}`
         };
         
-        // console.log('Adding charm to dropzone:', charmWithPosition);
         
         setCustomization({
           ...customization,
@@ -648,12 +605,10 @@ function App() {
     if (charm) {
       // Use NoWords position images for No Words products
       if (isNoWords && charm.noWordsPositionImages && charm.noWordsPositionImages[position + 1]) {
-        console.log(`Using WordPress NoWords position image for charm ${charmName} at position ${position + 1}: ${charm.noWordsPositionImages[position + 1]}`);
         return charm.noWordsPositionImages[position + 1];
       }
       // Use regular position images for other products
       else if (!isNoWords && charm.positionImages && charm.positionImages[position + 1]) {
-        console.log(`Using WordPress position image for charm ${charmName} at position ${position + 1}: ${charm.positionImages[position + 1]}`);
         return charm.positionImages[position + 1];
       }
     }
@@ -806,6 +761,19 @@ function App() {
         console.error('Preview element not found');
         return null;
       }
+
+      // Check if preview element has content
+      const previewContent = previewElement.innerHTML;
+      if (!previewContent || previewContent.trim() === '') {
+        console.error('Preview element is empty');
+        return null;
+      }
+
+
+      // Images should already be loaded when review page is accessed
+      const images = previewElement.querySelectorAll('img');
+
+
 
       // Store original styles to restore later
       const elementsToHide = [];
@@ -983,7 +951,6 @@ function App() {
 
       // Store the screenshot temporarily for use on review page
       setCapturedScreenshot(dataUrl);
-      console.log('Screenshot captured and stored for review page');
       return dataUrl;
     } catch (error) {
       console.error('Error capturing screenshot:', error);
@@ -1008,7 +975,6 @@ function App() {
         
         // Store the fallback screenshot
         setCapturedScreenshot(dataUrl);
-        console.log('Screenshot captured with fallback settings and stored for review page');
         return dataUrl;
       } catch (fallbackError) {
         console.error('Fallback screenshot also failed:', fallbackError);
@@ -1399,8 +1365,17 @@ function App() {
                   cursor: 'pointer'
                 }}
                 onClick={async () => {
-                  await captureScreenshot();
-                  setIsReviewMode(true);
+                  try {
+                    const screenshotResult = await captureScreenshot();
+                    if (screenshotResult) {
+                      setIsReviewMode(true);
+                    } else {
+                      alert('Failed to capture screenshot. Please try again.');
+                    }
+                  } catch (error) {
+                    console.error('Error in review button click handler:', error);
+                    alert('Error capturing screenshot. Please try again.');
+                  }
                 }}
               >
                 REVIEW
@@ -2107,8 +2082,17 @@ function App() {
                     minWidth: '120px'
                   }}
                   onClick={async () => {
-                    await captureScreenshot();
-                    setIsReviewMode(true);
+                    try {
+                      const screenshotResult = await captureScreenshot();
+                      if (screenshotResult) {
+                        setIsReviewMode(true);
+                      } else {
+                        alert('Failed to capture screenshot. Please try again.');
+                      }
+                    } catch (error) {
+                      console.error('Error in desktop review button click handler:', error);
+                      alert('Error capturing screenshot. Please try again.');
+                    }
                   }}
                 >
                   REVIEW
@@ -2187,7 +2171,18 @@ function App() {
                     }
                     setCurrentStep(currentStep + 1);
                   } else {
-                    setIsReviewMode(true);
+                    // This is for when currentStep === maxSteps (REVIEW button)
+                    try {
+                      const screenshotResult = await captureScreenshot();
+                      if (screenshotResult) {
+                        setIsReviewMode(true);
+                      } else {
+                        alert('Failed to capture screenshot. Please try again.');
+                      }
+                    } catch (error) {
+                      console.error('Error in main REVIEW button click handler:', error);
+                      alert('Error capturing screenshot. Please try again.');
+                    }
                   }
                 }}
               >

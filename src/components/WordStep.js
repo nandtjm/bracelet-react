@@ -14,9 +14,6 @@ const WordStep = ({
 }) => {
   
   // Debug: Log letterColors to check for duplicates
-  console.log('WordStep - received letterColors:', letterColors);
-  console.log('WordStep - letterColors length:', letterColors?.length);
-  console.log('WordStep - letterColors IDs:', letterColors?.map(c => c.id));
   
   // Check product type for different modes
   const isCollabsMode = selectedBracelet && selectedBracelet.category === 'Collabs';
@@ -64,7 +61,6 @@ const WordStep = ({
           
           // Generate static letter block URL
           const letterImageUrl = `https://res.cloudinary.com/drvnwq9bm/image/upload/f_auto,q_auto,w_90/customizer-v2/types/statics/${colorCode}/${char.toUpperCase()}.png`;
-          console.log(`Letter ${char} URL:`, letterImageUrl);
           
           return (
             <div key={index} style={{
