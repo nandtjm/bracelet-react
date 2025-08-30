@@ -84,17 +84,6 @@ const DraggableCharm = ({
     document.body.appendChild(previewElement);
     setDragPreview(previewElement);
     
-    // Debug logging for WordPress environment
-    if (typeof window !== 'undefined' && window.braceletCustomizerData) {
-      console.log('Drag preview created for WordPress environment:', {
-        id: previewElement.id,
-        className: previewElement.className,
-        zIndex: previewElement.style.zIndex,
-        position: previewElement.style.position,
-        display: previewElement.style.display,
-        visibility: previewElement.style.visibility
-      });
-    }
     
     // Add mouse/touch move listener to follow cursor
     const handleMove = (e) => {
@@ -122,10 +111,23 @@ const DraggableCharm = ({
   const removeDragPreview = () => {
     if (dragPreview) {
       if (dragPreview._cleanup) {
-        dragPreview._cleanup();
+        try {
+          dragPreview._cleanup();
+        } catch (cleanupError) {
+          // Ignore cleanup errors
+        }
       }
-      if (dragPreview.parentNode) {
-        dragPreview.parentNode.removeChild(dragPreview);
+      // Safe DOM removal check with multiple safety layers
+      try {
+        if (dragPreview && 
+            dragPreview.parentNode && 
+            dragPreview.parentNode.contains && 
+            dragPreview.parentNode.contains(dragPreview) && 
+            document.body.contains(dragPreview)) {
+          dragPreview.parentNode.removeChild(dragPreview);
+        }
+      } catch (error) {
+        // Silently handle removeChild errors that can occur in React concurrent mode
       }
       setDragPreview(null);
     }

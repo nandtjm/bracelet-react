@@ -30,7 +30,6 @@ const BraceletPreview = ({
   const isTinyWordsMode = selectedBracelet && selectedBracelet.category === 'Tiny Words';
   const isNoWordsMode = selectedBracelet && selectedBracelet.category === 'No Words';
   const isStandardMode = selectedBracelet && selectedBracelet.category === 'Standard';
-  console.log('BraceletPreview - selectedBracelet:', selectedBracelet);
   // Get the appropriate bracelet image based on mode
   const getDisplayImage = () => {
     if (isCollabsMode || isNoWordsMode) {
@@ -44,7 +43,6 @@ const BraceletPreview = ({
   
   // Get main charm image from selected bracelet
   const getMainCharmImage = () => {
-    console.log('getMainCharmImage - selectedBracelet:', selectedBracelet);
     if (!selectedBracelet) return '';
     
     // Check if bracelet has main charm image data

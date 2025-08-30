@@ -13,7 +13,8 @@ const CharmDropzone = ({
   const [{ isOver, canDrop }, drop] = useDrop(() => ({
     accept: 'CHARM',
     drop: (item, monitor) => {
-      if (!monitor.didDrop()) {
+      // Only handle if this zone accepts it AND hasn't already dropped deeper
+      if (!monitor.didDrop() && monitor.canDrop() && !isOccupied ) {
         // Create fake event for compatibility with existing handleDrop
         const fakeDropEvent = {
           preventDefault: () => {},
