@@ -117,7 +117,6 @@ img {
   font-weight: bold;
   margin: 0 auto 20px;
   position: relative;
-  padding: 40px 60px 40px 60px; /* Add more padding, especially on left/right */
 }
 
 /* Product Canvas - main container */
@@ -176,7 +175,6 @@ img {
 @media (min-width: 429px) {
   .bc-bracelet-preview-container {
     max-width: 590px;
-    padding: 50px 80px 50px 80px; /* Increase padding on larger screens */
   }
 }
 
