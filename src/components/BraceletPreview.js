@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import CharmDropzone from './CharmDropzone';
 import DraggableCharm from './DraggableCharm';
+import FreeDropArea from './FreeDropArea';
+import FreePlacedCharm from './FreePlacedCharm';
 
 const BraceletPreview = ({ 
   customization, 
@@ -20,7 +22,9 @@ const BraceletPreview = ({
   isDragInProgress,
   setIsDragInProgress,
   selectedBracelet,
-  getImageUrl
+  getImageUrl,
+  removeFreePlacedCharm,
+  rotateFreePlacedCharm
 }) => {
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [draggingCharmIndex, setDraggingCharmIndex] = useState(null);
@@ -336,6 +340,72 @@ const BraceletPreview = ({
                   })}
                 </div>
               )}
+
+              {/* Free placement drop area and charms - NEW SYSTEM */}
+              {((isStandardMode && currentStep === 3) || (isNoWordsMode && currentStep === 2)) && !isReviewMode && (
+                <FreeDropArea
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    zIndex: 1
+                  }}
+                >
+                  {/* Free placed charms */}
+                  {customization.selectedCharms
+                    .filter(charm => charm.x !== undefined && charm.y !== undefined)
+                    .map((charm, index) => (
+                      <FreePlacedCharm
+                        key={`free-charm-${charm.id}-${index}`}
+                        charm={charm}
+                        onRemove={removeFreePlacedCharm}
+                        onRotate={rotateFreePlacedCharm}
+                        onDragStart={(e) => handleDragStart(e, charm, 'free-placed-charm')}
+                        onDragEnd={() => setIsDragInProgress(false)}
+                        getImageUrl={getImageUrl}
+                        isDragging={isDragInProgress}
+                      />
+                    ))}
+                </FreeDropArea>
+              )}
+
+              {/* Free placed charms - visible on other steps (static display) */}
+              {((isStandardMode && (currentStep !== 3 || isReviewMode)) || (isNoWordsMode && (currentStep !== 2 || isReviewMode))) && (
+                <div className="bc-free-placed-charms-static" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 2 }}>
+                  {customization.selectedCharms
+                    .filter(charm => charm.x !== undefined && charm.y !== undefined)
+                    .map((charm, index) => (
+                      <div
+                        key={`static-charm-${charm.id}-${index}`}
+                        style={{
+                          position: 'absolute',
+                          left: `${charm.x}%`,
+                          top: `${charm.y}%`,
+                          transform: `translate(-50%, -50%) rotate(${charm.rotation || 0}deg)`,
+                          zIndex: 15
+                        }}
+                      >
+                        <img
+                          src={charm.image}
+                          alt={charm.name}
+                          style={{
+                            width: '60px',
+                            height: '60px',
+                            objectFit: 'contain',
+                            borderRadius: '8px',
+                            boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
+                            pointerEvents: 'none'
+                          }}
+                          draggable="false"
+                        />
+                      </div>
+                    ))}
+                </div>
+              )}
               
               {/* Letter overlays - show for Tiny Words and Standard products only */}
               {(isTinyWordsMode || isStandardMode) && (
@@ -431,7 +501,7 @@ const BraceletPreview = ({
             color: '#ef4444',
             textAlign: 'center'
           }}>
-Drag & drop your charm to any highlighted spot. You can also drag placed charms to move them between spots.
+Drag & drop your charm anywhere on the bracelet. Use the rotate button (↻) to rotate charms and the × button to remove them.
           </div>
         )}
       </div>
