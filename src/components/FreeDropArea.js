@@ -37,17 +37,27 @@ const FreeDropArea = ({
               console.log('Fallback calculated position:', { x: clampedX, y: clampedY });
               
               const charm = item.charm || item;
+              
+              // For PLACED_CHARM items (repositioning), just return coordinates
+              if (item.type === 'move') {
+                console.log('Fallback: Returning coordinates for charm repositioning:', { x: clampedX, y: clampedY });
+                return { x: clampedX, y: clampedY };
+              }
+              
+              // For new charms, add to canvas
               const charmWithFreePosition = {
                 ...charm,
                 x: clampedX,
                 y: clampedY,
-                rotation: 0,
+                rotation: charm.rotation || 0,
                 id: charm.id.includes && charm.id.includes('-') ? charm.id : `${charm.id}-${Date.now()}`
               };
               
               if (window.addCharmToCanvas) {
                 window.addCharmToCanvas(charmWithFreePosition);
               }
+              
+              return { x: clampedX, y: clampedY };
             }
           }
           return;
@@ -70,10 +80,19 @@ const FreeDropArea = ({
           
           console.log('Calculated position:', { x: clampedX, y: clampedY });
           
-          // Call handleDrop directly with the charm data and position
+          // Handle different item types
+          const charm = item.charm || item;
+          console.log('Processing drop for item type:', item.type);
+          
+          // For PLACED_CHARM items (repositioning), just return coordinates
+          if (item.type === 'move') {
+            console.log('Returning coordinates for charm repositioning:', { x: clampedX, y: clampedY });
+            return { x: clampedX, y: clampedY };
+          }
+          
+          // For new CHARM items, add to canvas
           if (onDrop) {
             // Pass the charm data directly to handleDrop
-            const charm = item.charm || item;
             const fakeEvent = {
               preventDefault: () => {},
               stopPropagation: () => {},
@@ -91,7 +110,7 @@ const FreeDropArea = ({
               ...charm,
               x: clampedX,
               y: clampedY,
-              rotation: 0,
+              rotation: charm.rotation || 0,
               id: charm.id.includes && charm.id.includes('-') ? charm.id : `${charm.id}-${Date.now()}`
             };
             

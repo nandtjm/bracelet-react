@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 
 const FreePlacedCharm = ({
   charm,
@@ -14,19 +15,82 @@ const FreePlacedCharm = ({
   const charmRef = useRef(null);
   
   // Make the entire charm draggable for repositioning
-  const [{ isDraggingItem }, drag] = useDrag(() => ({
+  const [{ isDraggingItem }, drag, preview] = useDrag(() => ({
     type: 'PLACED_CHARM',
-    item: { charm, type: 'move' },
+    item: { charm: { ...charm, rotation }, type: 'move' },
     collect: (monitor) => ({
       isDraggingItem: monitor.isDragging(),
     }),
     end: (item, monitor) => {
       const dropResult = monitor.getDropResult();
-      if (dropResult && onMove) {
+      console.log('FreePlacedCharm drag end - dropResult:', dropResult);
+      
+      // If we got a drop result with coordinates, use those
+      if (dropResult && dropResult.x !== undefined && dropResult.y !== undefined && onMove) {
+        console.log('Moving charm to dropResult coordinates:', dropResult.x, dropResult.y);
         onMove(charm.id, dropResult.x, dropResult.y);
+      } else {
+        // Fallback: calculate position based on where the charm was dropped
+        const clientOffset = monitor.getClientOffset();
+        if (clientOffset) {
+          const canvasElement = document.querySelector('.bc-product-overlapping');
+          if (canvasElement) {
+            const canvasRect = canvasElement.getBoundingClientRect();
+            const x = ((clientOffset.x - canvasRect.left) / canvasRect.width) * 100;
+            const y = ((clientOffset.y - canvasRect.top) / canvasRect.height) * 100;
+            const clampedX = Math.min(Math.max(x, 10), 90);
+            const clampedY = Math.min(Math.max(y, 10), 90);
+            
+            console.log('Moving charm to calculated coordinates:', clampedX, clampedY);
+            
+            if (onMove) {
+              onMove(charm.id, clampedX, clampedY);
+            }
+          }
+        }
       }
     }
-  }), [charm, onMove]);
+  }), [charm, onMove, rotation]);
+
+  // Create custom drag preview with correct rotation
+  useEffect(() => {
+    // Create a canvas element to render the rotated charm
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 60;
+    canvas.height = 60;
+    
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      // Clear canvas
+      ctx.clearRect(0, 0, 60, 60);
+      
+      // Set up rotation transformation
+      ctx.save();
+      ctx.translate(30, 30); // Move to center
+      ctx.rotate((rotation * Math.PI) / 180); // Convert to radians
+      
+      // Draw the image centered and rotated
+      ctx.drawImage(img, -30, -30, 60, 60);
+      ctx.restore();
+      
+      // Convert canvas to data URL and set as preview
+      const dataURL = canvas.toDataURL();
+      const previewImg = new Image();
+      previewImg.src = dataURL;
+      previewImg.onload = () => {
+        preview(previewImg);
+      };
+    };
+    
+    img.onerror = () => {
+      // Fallback: use empty image if custom preview fails
+      preview(getEmptyImage());
+    };
+    
+    img.src = charm.image;
+  }, [charm.image, rotation, preview]);
 
   // Handle free rotation with mouse drag
   const handleRotateStart = (e) => {
