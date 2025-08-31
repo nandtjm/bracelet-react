@@ -541,8 +541,8 @@ function App() {
     if (currentDraggedItem && (currentDraggedItem.itemType === 'charm' || currentDraggedItem.itemType === 'placed-charm' || currentDraggedItem.itemType === 'free-placed-charm')) {
       const charm = currentDraggedItem.item;
       
-      // Handle free placement (dropzoneIndex is null)
-      if (dropzoneIndex === null && e.position) {
+      // All placement is now free placement - no more dropzones
+      if (e.position) {
         if (currentDraggedItem.itemType === 'free-placed-charm') {
           // Moving an existing free-placed charm
           const updatedCharms = customization.selectedCharms.map(c => {
@@ -550,8 +550,7 @@ function App() {
               return {
                 ...c,
                 x: e.position.x,
-                y: e.position.y,
-                dropzoneIndex: undefined // Remove dropzone reference
+                y: e.position.y
               };
             }
             return c;
@@ -562,60 +561,24 @@ function App() {
             selectedCharms: updatedCharms
           });
         } else {
-          // Adding a new charm with free placement
+          // Adding a new charm with free placement (from charm grid or existing legacy dropzone charm)
           const charmWithFreePosition = {
             ...charm,
             x: e.position.x,
             y: e.position.y,
-            rotation: 0,
-            id: `${charm.id}-${Date.now()}` // Ensure unique ID for free placement
+            rotation: charm.rotation || 0,
+            id: charm.id.includes('-') ? charm.id : `${charm.id}-${Date.now()}` // Ensure unique ID
           };
           
-          setCustomization({
-            ...customization,
-            selectedCharms: [...customization.selectedCharms, charmWithFreePosition]
-          });
-        }
-      } else if (dropzoneIndex !== null) {
-        // Handle traditional dropzone placement
-        // Check if this dropzone already has a charm
-        const existingCharmInDropzone = customization.selectedCharms.find(c => c.dropzoneIndex === dropzoneIndex);
-        if (existingCharmInDropzone) {
-          setDraggedItem(null);
-          return;
-        }
-        
-        if (currentDraggedItem.itemType === 'placed-charm' || currentDraggedItem.itemType === 'free-placed-charm') {
-          // Moving an existing charm to a dropzone
-          const updatedCharms = customization.selectedCharms.map(c => {
-            if (c.id === charm.id) {
-              return {
-                ...c,
-                dropzoneIndex: dropzoneIndex,
-                positionId: `dropzone-${dropzoneIndex}`,
-                x: undefined, // Remove free position
-                y: undefined
-              };
-            }
-            return c;
-          });
+          // If this was a legacy dropzone charm being moved, remove the old one
+          let updatedCharms = [...customization.selectedCharms];
+          if (currentDraggedItem.itemType === 'placed-charm' && charm.dropzoneIndex !== undefined) {
+            updatedCharms = updatedCharms.filter(c => !(c.id === charm.id && c.dropzoneIndex === charm.currentDropzoneIndex));
+          }
           
           setCustomization({
             ...customization,
-            selectedCharms: updatedCharms
-          });
-        } else {
-          // Adding a new charm to a dropzone
-          const charmWithPosition = {
-            ...charm,
-            dropzoneIndex: dropzoneIndex,
-            positionId: `dropzone-${dropzoneIndex}`,
-            id: `${charm.id}-${Date.now()}` // Ensure unique ID
-          };
-          
-          setCustomization({
-            ...customization,
-            selectedCharms: [...customization.selectedCharms, charmWithPosition]
+            selectedCharms: [...updatedCharms, charmWithFreePosition]
           });
         }
       }
