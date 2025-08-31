@@ -22,7 +22,8 @@ const BraceletPreview = ({
   selectedBracelet,
   getImageUrl,
   removeFreePlacedCharm,
-  rotateFreePlacedCharm
+  rotateFreePlacedCharm,
+  moveFreePlacedCharm
 }) => {
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [draggingCharmIndex, setDraggingCharmIndex] = useState(null);
@@ -117,9 +118,7 @@ const BraceletPreview = ({
                       charm={charm}
                       onRemove={removeFreePlacedCharm}
                       onRotate={rotateFreePlacedCharm}
-                      onDragStart={(e) => handleDragStart(e, charm, 'free-placed-charm')}
-                      onDragEnd={() => setIsDragInProgress(false)}
-                      getImageUrl={getImageUrl}
+                      onMove={moveFreePlacedCharm}
                       isDragging={isDragInProgress}
                     />
                   ))}

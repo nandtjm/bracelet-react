@@ -495,6 +495,7 @@ function App() {
   // Handle drag and drop functionality
   const handleDragStart = (e, item, itemType) => {
     const dragData = { item, itemType };
+    console.log('handleDragStart called with:', { item, itemType, dragData });
     setDraggedItem(dragData);
     setIsDragInProgress(true);
     
@@ -518,6 +519,8 @@ function App() {
   };
 
   const handleDrop = (e, dropzoneIndex) => {
+    console.log('handleDrop called with:', { e, dropzoneIndex });
+    
     if (e && e.preventDefault) {
       e.preventDefault();
     }
@@ -537,6 +540,9 @@ function App() {
       } catch (error) {
       }
     }
+    
+    console.log('Current dragged item:', currentDraggedItem);
+    console.log('Event position:', e?.position);
     
     if (currentDraggedItem && (currentDraggedItem.itemType === 'charm' || currentDraggedItem.itemType === 'placed-charm' || currentDraggedItem.itemType === 'free-placed-charm')) {
       const charm = currentDraggedItem.item;
@@ -612,6 +618,35 @@ function App() {
       )
     });
   };
+
+  // Direct charm placement function
+  const addCharmToCanvas = React.useCallback((charmWithPosition) => {
+    console.log('Adding charm to canvas:', charmWithPosition);
+    setCustomization(prev => ({
+      ...prev,
+      selectedCharms: [...prev.selectedCharms, charmWithPosition]
+    }));
+    setIsDragInProgress(false);
+  }, [setIsDragInProgress]);
+
+  // Handler for moving free-placed charms
+  const moveFreePlacedCharm = React.useCallback((charmId, newX, newY) => {
+    console.log('Moving charm:', charmId, 'to:', newX, newY);
+    setCustomization(prev => ({
+      ...prev,
+      selectedCharms: prev.selectedCharms.map(c => 
+        c.id === charmId ? { ...c, x: newX, y: newY } : c
+      )
+    }));
+  }, []);
+
+  // Expose globally for FreeDropArea to use
+  React.useEffect(() => {
+    window.addCharmToCanvas = addCharmToCanvas;
+    return () => {
+      delete window.addCharmToCanvas;
+    };
+  }, [addCharmToCanvas]);
 
   // Helper function to generate charm position image path
   const getCharmPositionImagePath = (charmName, position) => {
@@ -1508,6 +1543,7 @@ function App() {
           getImageUrl={getImageUrl}
           removeFreePlacedCharm={removeFreePlacedCharm}
           rotateFreePlacedCharm={rotateFreePlacedCharm}
+          moveFreePlacedCharm={moveFreePlacedCharm}
           isMobile={true}
         />
       </MobileLayout>
@@ -1634,6 +1670,7 @@ function App() {
             getImageUrl={getImageUrl}
             removeFreePlacedCharm={removeFreePlacedCharm}
             rotateFreePlacedCharm={rotateFreePlacedCharm}
+            moveFreePlacedCharm={moveFreePlacedCharm}
           />
         </div>
 

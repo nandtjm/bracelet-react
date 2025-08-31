@@ -1,24 +1,89 @@
-import React, { useState } from 'react';
-import DraggableCharm from './DraggableCharm';
+import React, { useState, useRef, useEffect } from 'react';
+import { useDrag } from 'react-dnd';
 
 const FreePlacedCharm = ({
   charm,
   onRemove,
   onRotate,
-  onDragStart,
-  onDragEnd,
-  getImageUrl,
+  onMove,
   isDragging = false
 }) => {
   const [rotation, setRotation] = useState(charm.rotation || 0);
+  const [isRotating, setIsRotating] = useState(false);
+  const [dragStart, setDragStart] = useState(null);
+  const charmRef = useRef(null);
+  
+  // Make the entire charm draggable for repositioning
+  const [{ isDraggingItem }, drag] = useDrag(() => ({
+    type: 'PLACED_CHARM',
+    item: { charm, type: 'move' },
+    collect: (monitor) => ({
+      isDraggingItem: monitor.isDragging(),
+    }),
+    end: (item, monitor) => {
+      const dropResult = monitor.getDropResult();
+      if (dropResult && onMove) {
+        onMove(charm.id, dropResult.x, dropResult.y);
+      }
+    }
+  }), [charm, onMove]);
 
-  const handleRotate = () => {
-    const newRotation = (rotation + 90) % 360;
+  // Handle free rotation with mouse drag
+  const handleRotateStart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsRotating(true);
+    
+    const charmElement = charmRef.current;
+    if (!charmElement) return;
+    
+    const rect = charmElement.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const startAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
+    setDragStart({ startAngle, startRotation: rotation });
+  };
+
+  const handleRotateMove = (e) => {
+    if (!isRotating || !dragStart) return;
+    
+    const charmElement = charmRef.current;
+    if (!charmElement) return;
+    
+    const rect = charmElement.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const currentAngle = Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180 / Math.PI;
+    const deltaAngle = currentAngle - dragStart.startAngle;
+    const newRotation = (dragStart.startRotation + deltaAngle) % 360;
+    
     setRotation(newRotation);
-    if (onRotate) {
-      onRotate(charm.id, newRotation);
+  };
+
+  const handleRotateEnd = () => {
+    if (isRotating) {
+      setIsRotating(false);
+      setDragStart(null);
+      if (onRotate) {
+        onRotate(charm.id, rotation);
+      }
     }
   };
+
+  // Global mouse event handlers
+  useEffect(() => {
+    if (isRotating) {
+      document.addEventListener('mousemove', handleRotateMove);
+      document.addEventListener('mouseup', handleRotateEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleRotateMove);
+        document.removeEventListener('mouseup', handleRotateEnd);
+      };
+    }
+  }, [isRotating, dragStart, rotation]);
 
   const handleRemove = () => {
     if (onRemove) {
@@ -28,45 +93,45 @@ const FreePlacedCharm = ({
 
   return (
     <div
+      ref={charmRef}
       className="bc-free-placed-charm"
       style={{
         position: 'absolute',
         left: `${charm.x}%`,
         top: `${charm.y}%`,
-        transform: `translate(-50%, -50%) rotate(${rotation}deg)`,
+        transform: `translate(-50%, -50%)`,
         zIndex: 15,
-        opacity: isDragging ? 0.5 : 1,
+        opacity: isDraggingItem ? 0.5 : 1,
         pointerEvents: isDragging ? 'none' : 'auto'
       }}
     >
-      {/* Rotation handle */}
-      <button
-        type="button"
+      {/* Rotation handle - drag to rotate freely */}
+      <div
         className="bc-charm-rotate-handle"
-        aria-label="Rotate charm"
-        onClick={handleRotate}
+        onMouseDown={handleRotateStart}
         style={{
           position: 'absolute',
-          top: '-15px',
+          top: '-20px',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '16px',
-          height: '16px',
+          width: '20px',
+          height: '20px',
           borderRadius: '50%',
           border: '2px solid #f59e0b',
           background: 'white',
-          cursor: 'pointer',
+          cursor: 'grab',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           zIndex: 1001,
-          fontSize: '10px',
+          fontSize: '12px',
           color: '#f59e0b',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+          userSelect: 'none'
         }}
       >
-        ↻
-      </button>
+        ○
+      </div>
 
       {/* Close/remove button */}
       <button
@@ -104,32 +169,34 @@ const FreePlacedCharm = ({
         </svg>
       </button>
 
-      {/* Draggable charm */}
-      <DraggableCharm
-        charm={charm}
-        isFromGrid={false}
-        onDragStart={onDragStart}
-        onDragEnd={onDragEnd}
+      {/* Draggable charm container */}
+      <div
+        ref={drag}
         style={{
           width: '60px',
           height: '60px',
-          cursor: 'grab'
+          cursor: isDraggingItem ? 'grabbing' : 'grab',
+          transform: `rotate(${rotation}deg)`,
+          position: 'relative'
         }}
       >
+        {/* Charm image without background */}
         <img
           src={charm.image}
           alt={charm.name}
           style={{
-            width: '60px',
-            height: '60px',
+            width: '100%',
+            height: '100%',
             objectFit: 'contain',
-            borderRadius: '8px',
-            boxShadow: '0 4px 8px rgba(0,0,0,0.1)',
-            pointerEvents: 'none'
+            pointerEvents: 'none',
+            // Remove background and make transparent
+            background: 'transparent',
+            borderRadius: '0',
+            boxShadow: 'none'
           }}
           draggable="false"
         />
-      </DraggableCharm>
+      </div>
     </div>
   );
 };
